@@ -384,15 +384,19 @@ const rng = mulberry32(88771);
 const pick = (arr)=>arr[Math.floor(rng()*arr.length)];
 const randInt = (a,b)=>Math.floor(rng()*(b-a+1))+a;
 
-const ARTISTS = [
-  {id:'baruch', name:'Baruch Levine', slot:1, initials:'BL'},
-  {id:'benny',  name:'Benny Friedman', slot:2, initials:'BF'},
-  {id:'moshe',  name:'Moshe Tischler', slot:3, initials:'MT'},
-  {id:'yaakov', name:'Yaakov Rosenblum', slot:4, initials:'YR'},
-  {id:'eli',    name:'Eli Marcus', slot:5, initials:'EM'},
-  {id:'dovie',  name:'Dovie Nueberger', slot:6, initials:'DN'},
+let ARTISTS = [
+  {id:'baruch', name:'Baruch Levine', slot:1, initials:'BL', email:'baruch@aspmanagement.com'},
+  {id:'benny',  name:'Benny Friedman', slot:2, initials:'BF', email:'benny@aspmanagement.com'},
+  {id:'moshe',  name:'Moshe Tischler', slot:3, initials:'MT', email:'moshe@aspmanagement.com'},
+  {id:'yaakov', name:'Yaakov Rosenblum', slot:4, initials:'YR', email:'yaakov@aspmanagement.com'},
+  {id:'eli',    name:'Eli Marcus', slot:5, initials:'EM', email:'eli@aspmanagement.com'},
+  {id:'dovie',  name:'Dovie Nueberger', slot:6, initials:'DN', email:'dovie@aspmanagement.com'},
 ];
 const artistById = (id)=>ARTISTS.find(a=>a.id===id);
+const ARTISTS_LS_KEY = 'asp_mock_artists_v1';
+function loadArtists(){ try{ const raw = localStorage.getItem(ARTISTS_LS_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
+function saveArtists(){ try{ localStorage.setItem(ARTISTS_LS_KEY, JSON.stringify(ARTISTS)); }catch(e){} }
+{ const saved = loadArtists(); if(saved && saved.length) ARTISTS = saved; else saveArtists(); }
 
 const ADMIN_USERS = [
   {id:'admin_bookings', name:'ASP Office — Bookings', email:'bookings@aspmanagement.com', initials:'AB'},
@@ -510,6 +514,9 @@ let S = {
   dayListDate:null,
   showInstallBanner:false,
   showEventMenu:false,
+  showAddArtist:false,
+  addArtistForm:{},
+  newArtistWelcome:null,
   calMonth: (()=>{const d=new Date(); d.setDate(1); return d;})(),
   calArtistFilter: [],
   finArtistFilter: 'all',
@@ -684,6 +691,8 @@ function render(){
     </div>
     ${renderBottomNav(isAdmin)}
     ${S.showNewLead ? renderNewLeadModal() : ''}
+    ${S.showAddArtist ? renderAddArtistModal() : ''}
+    ${S.newArtistWelcome ? renderWelcomeEmailPreview() : ''}
     ${S.dayListDate ? renderDayList() : ''}
     ${S.eventId ? renderEventSheet(getEvent(S.eventId)) : ''}
     ${renderInstallBanner()}
@@ -809,7 +818,7 @@ function renderGoogleChooser(){
       <div class="chooser-divider">Artists</div>
       ${ARTISTS.map(a=>`<button class="chooser-row" data-action="login" data-user="${a.id}">
         <span class="avatar" data-slot="${a.slot}" style="width:32px;height:32px;font-size:11px;">${a.initials}</span>
-        <span><strong>${esc(a.name)}</strong><span class="chooser-email">${a.id}@aspmanagement.com</span></span>
+        <span><strong>${esc(a.name)}</strong><span class="chooser-email">${esc(a.email)}</span></span>
       </button>`).join('')}
     </div>
     <p style="text-align:center;color:var(--ink-3);font-size:10.5px;margin-top:16px;">Demo mode — pick any account to preview that person's view. In production this list comes from real Google sign-in, so each person only ever sees their own account.</p>
@@ -960,7 +969,8 @@ function renderLeadsPage(){
 
 /* ============ ARTISTS ROSTER ============ */
 function renderArtistsPage(){
-  return `<div class="grid grid-3">
+  return `<div class="section-head"><h2>Roster (${ARTISTS.length})</h2><button class="btn btn-sm btn-primary" data-action="open-add-artist">${ICO.plus} Add Artist</button></div>
+  <div class="grid grid-3">
     ${ARTISTS.map(a=>{
       const evs = eventsFor(a.id);
       const upcoming = evs.filter(e=>!isPast(e.date) && ['booked','paid'].includes(e.status)).length;
@@ -1127,6 +1137,45 @@ function renderNewLeadModal(){
           </div>
         </div>
         <button class="btn btn-primary btn-block" data-action="submit-lead" style="margin-top:6px;">Add Lead — Pencil into Calendar</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderAddArtistModal(){
+  const f = S.addArtistForm;
+  return `<div class="overlay center" data-action="overlay-close-addartist">
+    <div class="modal" data-stop data-form="addartist" style="width:420px;">
+      <div class="sheet-head"><h2 style="font-size:1.3rem;">Add Artist</h2><button class="icon-btn" data-action="close-add-artist">${ICO.x}</button></div>
+      <div class="sheet-body">
+        <div class="field"><label>Full Name</label><input data-field="name" value="${esc(f.name||'')}" placeholder="Full name" autofocus/></div>
+        <p style="font-size:12px;color:var(--ink-3);margin:0;">A login email and a "Welcome to ASP Management" message get generated automatically once you add them.</p>
+        <button class="btn btn-primary btn-block" data-action="confirm-add-artist">Add Artist</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderWelcomeEmailPreview(){
+  const w = S.newArtistWelcome; if(!w) return '';
+  return `<div class="overlay center" data-action="overlay-close-welcome">
+    <div class="doc" data-stop style="width:480px;">
+      <div class="sheet-head"><h2 style="font-size:1.1rem;">${ICO.check} Artist Added</h2><button class="icon-btn" data-action="close-welcome">${ICO.x}</button></div>
+      <div class="doc-body" style="padding:26px 28px 30px;">
+        <p style="font-size:13px;color:var(--ink-2);margin:0 0 16px;"><strong style="color:var(--ink);">${esc(w.name)}</strong> was added to the roster with login <strong style="color:var(--ink);">${esc(w.email)}</strong>. A welcome email was sent:</p>
+        <div class="card card-pad" style="background:var(--surface-2);">
+          <div class="u-label" style="margin-bottom:8px;">Email Preview</div>
+          <div style="font-size:12.5px;line-height:1.6;">
+            <div><strong>To:</strong> ${esc(w.email)}</div>
+            <div><strong>Subject:</strong> Welcome to ASP Management</div>
+            <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;"/>
+            <p style="margin:0 0 8px;">Hi ${esc(w.name.split(' ')[0])},</p>
+            <p style="margin:0 0 8px;">Welcome to ASP! Your bookings dashboard is ready — you'll see every upcoming gig, its details, and your payout breakdown in one place.</p>
+            <p style="margin:0 0 8px;">Sign in any time with your Google account (${esc(w.email)}) — no separate password needed.</p>
+            <p style="margin:0;">— ASP Artist Management</p>
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" data-action="close-welcome" style="margin-top:16px;">Done</button>
       </div>
     </div>
   </div>`;
@@ -1512,6 +1561,27 @@ function doDeleteEvent(id){
   toast('Deleted.', 'system');
   closeSheet();
 }
+function doAddArtist(){
+  const name = (S.addArtistForm.name||'').trim();
+  if(!name){ toast('Enter a name.', 'system'); return; }
+  const parts = name.split(/\s+/);
+  const first = parts[0].toLowerCase().replace(/[^a-z]/g,'');
+  const last = (parts[1]||'').toLowerCase().replace(/[^a-z]/g,'');
+  let id = first || 'artist';
+  if(ARTISTS.some(a=>a.id===id)) id = first + (last? last[0] : '');
+  let uniq = id, n = 2;
+  while(ARTISTS.some(a=>a.id===uniq)){ uniq = id + n; n++; }
+  id = uniq;
+  const email = `${first}${last? '.'+last : ''}@aspmanagement.com`;
+  const initials = (parts[0][0] + (parts[1]? parts[1][0] : '')).toUpperCase();
+  const slot = (ARTISTS.length % 6) + 1;
+  const artist = {id, name, slot, initials, email};
+  ARTISTS.push(artist); saveArtists();
+  S.showAddArtist = false; S.addArtistForm = {};
+  S.newArtistWelcome = {name, email};
+  toast(`${name} added — welcome email sent to ${email}.`, 'email');
+  render();
+}
 function doSubmitLead(){
   const f = S.newLeadForm;
   if(!f.artistId || !f.clientName || !f.date || !f.venue || !f.city || !f.price){ toast('Please fill in artist, client, date, venue, city and price.', 'system'); return; }
@@ -1553,7 +1623,7 @@ function bindGlobal(){
     el.addEventListener('input', e=>{
       const key = el.getAttribute('data-field');
       const form = el.closest('[data-form]')?.getAttribute('data-form');
-      const target = form==='flight' ? S.flightForm : form==='charge' ? S.addChargeForm : S.newLeadForm;
+      const target = form==='flight' ? S.flightForm : form==='charge' ? S.addChargeForm : form==='addartist' ? S.addArtistForm : S.newLeadForm;
       target[key] = el.type==='checkbox'? el.checked : el.value;
     });
   });
@@ -1614,6 +1684,12 @@ function bindGlobal(){
       case 'ics': downloadIcs(getEvent(id)); break;
       case 'reset-demo': if(confirm('Reset all demo data back to the seeded example set?')) resetDemo(); break;
       case 'export-csv': exportCSV(); break;
+      case 'open-add-artist': S.addArtistForm={}; S.showAddArtist=true; render(); break;
+      case 'close-add-artist': S.showAddArtist=false; render(); break;
+      case 'overlay-close-addartist': if(e.target===t){ S.showAddArtist=false; render(); } break;
+      case 'confirm-add-artist': doAddArtist(); break;
+      case 'close-welcome': S.newArtistWelcome=null; render(); break;
+      case 'overlay-close-welcome': if(e.target===t){ S.newArtistWelcome=null; render(); } break;
       case 'toggle-event-menu': S.showEventMenu = !S.showEventMenu; render(); break;
       case 'share-event': doShareEvent(id); break;
       case 'delete-event': doDeleteEvent(id); break;
