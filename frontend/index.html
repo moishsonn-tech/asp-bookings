@@ -665,7 +665,10 @@ function fmtTimeRange(start, end){ return end? `${fmtTime(start)} – ${fmtTime(
 function addMinutesToTime(t, mins){ const [h,m]=t.split(':').map(Number); const total=(h*60+m+mins+1440)%1440; return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`; }
 function daysUntil(iso){ const today=new Date(); today.setHours(0,0,0,0); const d=new Date(iso+'T00:00:00'); return Math.round((d-today)/86400000); }
 function isPast(iso){ return daysUntil(iso) < 0; }
-function fullLocation(ev){ return `${ev.venue}, ${ev.city}, ${ev.state}`; }
+function fullLocation(ev){
+  const parts = [ev.venue, ev.city, ev.state].filter(Boolean);
+  return parts.length? parts.join(', ') : 'Location TBD';
+}
 const US_STATES = new Set(['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC']);
 function isInternational(ev){ return !US_STATES.has((ev.state||'').trim().toUpperCase()); }
 function eventTravelDates(ev){
@@ -1089,7 +1092,7 @@ function renderEventTable(events, opts={}){
         return `<tr class="row-link" data-action="open-event" data-id="${e.id}">
           ${opts.showArtist?`<td><span style="display:flex;align-items:center;gap:7px;"><span class="avatar" data-slot="${a.slot}" style="width:22px;height:22px;font-size:9px;">${a.initials}</span>${esc(a.name)}</span></td>`:''}
           <td>${esc(e.clientName)}</td><td>${esc(e.type)}</td><td class="u-mono">${fmtDateShort(e.date)}</td>
-          <td>${esc(e.venue)}</td><td class="u-mono">${money(e.price)}</td>
+          <td>${esc(e.venue)||'—'}</td><td class="u-mono">${money(e.price)}</td>
           <td><span class="pill ${sm.cls}">${sm.label}</span></td>
         </tr>`;
       }).join('')}
@@ -1465,6 +1468,7 @@ function renderNewLeadModal(){
     <div class="modal" data-stop data-form="lead">
       <div class="sheet-head"><h2 style="font-size:1.3rem;">New Lead</h2><button class="icon-btn" data-action="close-sheet">${ICO.x}</button></div>
       <div class="sheet-body">
+        <p style="font-size:12px;color:var(--ink-3);margin:0;">Only the artist, client name, and date are required — everything else can be filled in once it's known.</p>
         <div class="field"><label>Artist</label>
           <div class="artist-pick">${ARTISTS.map(a=>`<div class="artist-opt ${f.artistId===a.id?'sel':''}" data-action="pick-artist" data-id="${a.id}">
             <span class="avatar" data-slot="${a.slot}" style="width:34px;height:34px;font-size:12px;">${a.initials}</span><span>${a.name}</span></div>`).join('')}</div>
@@ -1582,7 +1586,7 @@ function renderEventSheet(ev){
           <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.pin} Client</span><strong>${esc(ev.clientName)}</strong></div>
           <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">Type</span><strong>${esc(ev.type)}</strong></div>
           <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.clock} Date &amp; Time</span><strong class="u-mono">${fmtDate(ev.date)} · ${fmtTimeRange(ev.time, ev.endTime)}</strong></div>
-          <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.pin} Venue</span><strong style="text-align:right;">${esc(ev.venue)}<br/><span style="font-weight:500;color:var(--ink-2);">${esc(ev.city)}, ${esc(ev.state)}</span></strong></div>
+          <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.pin} Venue</span><strong style="text-align:right;">${ev.venue? esc(ev.venue) : `<span style="color:var(--ink-3);font-weight:500;">TBD</span>`}${(ev.city||ev.state)?`<br/><span style="font-weight:500;color:var(--ink-2);">${esc(ev.city)}${ev.city&&ev.state?', ':''}${esc(ev.state)}</span>`:''}</strong></div>
           ${isAdmin?`<div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.mail} Contact</span><strong style="text-align:right;">${esc(ev.clientEmail)}<br/><span style="font-weight:500;color:var(--ink-2);">${esc(ev.clientPhone)}</span></strong></div>`:''}
         </div>
 
@@ -1783,8 +1787,8 @@ function renderContractDoc(){
             <div><span class="k">Event Type</span><span>${esc(ev.type)}</span></div>
             <div><span class="k">Date</span><span>${fmtDate(ev.date)}</span></div>
             <div><span class="k">Performance Time</span><span>${fmtTimeRange(ev.time, ev.endTime)}</span></div>
-            <div><span class="k">Venue</span><span>${esc(ev.venue)}</span></div>
-            <div><span class="k">City, State</span><span>${esc(ev.city)}, ${esc(ev.state)}</span></div>
+            <div><span class="k">Venue</span><span>${esc(ev.venue)||'TBD'}</span></div>
+            <div><span class="k">City, State</span><span>${(ev.city||ev.state)? `${esc(ev.city)}${ev.city&&ev.state?', ':''}${esc(ev.state)}` : 'TBD'}</span></div>
           </div>
         </div>
 
@@ -1912,7 +1916,7 @@ function doRemovePrep(id, prepId){
 function doShareEvent(id){
   S.showEventMenu = false;
   const ev = getEvent(id); const a = artistById(ev.artistId);
-  const text = `${a.name} — ${ev.type}\n${fmtDate(ev.date)} · ${fmtTimeRange(ev.time, ev.endTime)}\n${ev.venue}, ${ev.city}, ${ev.state}`;
+  const text = `${a.name} — ${ev.type}\n${fmtDate(ev.date)} · ${fmtTimeRange(ev.time, ev.endTime)}\n${fullLocation(ev)}`;
   if(navigator.share){
     navigator.share({title:`${a.name} — ${ev.type}`, text}).catch(()=>{});
   } else if(navigator.clipboard){
@@ -2040,12 +2044,12 @@ function doSendProjectUpdate(id){
 }
 function doSubmitLead(){
   const f = S.newLeadForm;
-  if(!f.artistId || !f.clientName || !f.date || !f.venue || !f.city || !f.price){ toast('Please fill in artist, client, date, venue, city and price.', 'system'); return; }
-  const price = Number(f.price); const commission = Math.round(price*0.15);
+  if(!f.artistId || !(f.clientName||'').trim() || !f.date){ toast('Pick an artist and enter a client name and date.', 'system'); return; }
+  const price = Number(f.price)||0; const commission = Math.round(price*0.15);
   const ev = {
     id:'EV-'+(EVID++), artistId:f.artistId, type: f.type||EVENT_TYPES[0], clientName:f.clientName,
     clientEmail: f.clientEmail||'', clientPhone: f.clientPhone||'', date: f.date, time: f.time||'19:00', endTime: f.endTime||null,
-    venue: f.venue, city: f.city, state: f.state||'',
+    venue: f.venue||'', city: f.city||'', state: f.state||'',
     price, commission, balance: price-commission, status:'lead', depositReceived:false, depositReceivedDate:null,
     balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
     flightNeeded: !!f.flightNeeded, flightBooked:false, flight:null, charges: f.charges||[], prepSheets:[], createdAt: fmtISO(new Date()),
