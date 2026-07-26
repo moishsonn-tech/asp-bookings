@@ -1088,7 +1088,7 @@ function renderEventSheet(ev){
           <button class="icon-btn" data-action="toggle-event-menu">${ICO.kebab}</button>
           ${S.showEventMenu? `<div class="kebab-dropdown">
             <button class="kebab-item" data-action="share-event" data-id="${ev.id}">${ICO.share} Share</button>
-            ${isAdmin? `<button class="kebab-item danger" data-action="delete-event" data-id="${ev.id}">${ICO.trash} Delete ${ev.status==='lead'?'Lead':'Gig'}</button>`:''}
+            <button class="kebab-item danger" data-action="delete-event" data-id="${ev.id}">${ICO.trash} Delete ${ev.status==='lead'?'Lead':'Gig'}</button>
           </div>`:''}
           <button class="icon-btn" data-action="close-sheet">${ICO.x}</button>
         </div>
