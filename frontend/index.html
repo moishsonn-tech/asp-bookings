@@ -261,6 +261,18 @@ tr.row-link:hover td{ background:var(--surface-2); }
 .sparkbar{ display:flex; align-items:flex-end; gap:2px; height:36px; }
 .sparkbar b{ flex:1; background:var(--accent); border-radius:2px 2px 0 0; opacity:.85; min-width:3px; }
 
+/* ============ PROJECTS BOARD ============ */
+.board{ display:flex; gap:14px; overflow-x:auto; padding-bottom:10px; align-items:flex-start; }
+.board-col{ flex:none; width:240px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-md); padding:10px; transition:.14s ease; }
+.board-col.drag-over{ border-color:var(--accent); background:var(--accent-wash); }
+.board-col-head{ display:flex; justify-content:space-between; align-items:center; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-2); padding:2px 4px 10px; }
+.board-col-count{ background:var(--surface-3); color:var(--ink-3); border-radius:999px; padding:1px 7px; font-size:10.5px; }
+.board-col-body{ display:flex; flex-direction:column; gap:8px; min-height:50px; }
+.board-card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-sm); padding:10px 12px; cursor:grab; box-shadow:var(--shadow-sm); }
+.board-card:active{ cursor:grabbing; }
+.board-empty{ font-size:11px; color:var(--ink-3); text-align:center; padding:14px 0; }
+.tl-step.clickable{ cursor:pointer; }
+
 /* ============ KEBAB MENU ============ */
 .kebab-dropdown{ position:absolute; top:38px; right:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-md); box-shadow:var(--shadow-md); min-width:170px; z-index:10; overflow:hidden; }
 .kebab-item{ display:flex; align-items:center; gap:9px; width:100%; padding:10px 14px; font-size:13px; font-weight:600; color:var(--ink); background:transparent; border:none; text-align:left; }
@@ -376,6 +388,8 @@ const ICO = {
   plus:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
   kebab:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>',
   trash:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/><path d="M10 11v6M14 11v6"/></svg>',
+  kanban:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="10" rx="1.5"/><rect x="16" y="4" width="5" height="13" rx="1.5"/></svg>',
+  sparkle:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg>',
 };
 
 /* ============ SEED DATA ============ */
@@ -397,6 +411,79 @@ const ARTISTS_LS_KEY = 'asp_mock_artists_v1';
 function loadArtists(){ try{ const raw = localStorage.getItem(ARTISTS_LS_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
 function saveArtists(){ try{ localStorage.setItem(ARTISTS_LS_KEY, JSON.stringify(ARTISTS)); }catch(e){} }
 { const saved = loadArtists(); if(saved && saved.length) ARTISTS = saved; else saveArtists(); }
+
+/* ============ PROJECTS ============ */
+const PROJECT_TYPES = {
+  Album: ['Writing','Recording','Mixing & Mastering','Artwork','Release'],
+  Tour: ['Routing','Venue Confirms','Logistics','Promotion','On Tour'],
+  Video: ['Concept','Shoot','Edit','Release'],
+  Show: ['Concept','Production','Promotion','Show Day'],
+};
+const PROJECT_TASK_TEMPLATES = {
+  Album: {
+    'Writing': ['Finalize track list','Book co-writer sessions','Demo rough vocals'],
+    'Recording': ['Book studio time','Track instrumentals','Record lead vocals'],
+    'Mixing & Mastering': ['Send stems to mixer','Approve final mix','Master for streaming + CD'],
+    'Artwork': ['Brief the designer','Approve cover art','Prepare liner notes'],
+    'Release': ['Set release date','Submit to distributors','Plan release promo'],
+  },
+  Tour: {
+    'Routing': ['Pick target cities','Draft the route','Check date conflicts with existing gigs'],
+    'Venue Confirms': ['Reach out to venues','Lock deposits','Sign venue contracts'],
+    'Logistics': ['Book flights & ground transport','Arrange lodging','Confirm production needs per venue'],
+    'Promotion': ['Announce tour dates','Local press outreach per city','Ticketing links live'],
+    'On Tour': ['Daily check-in with artist','Settle venue payments','Track expenses'],
+  },
+  Video: {
+    'Concept': ['Lock concept/treatment','Location scouting','Budget approval'],
+    'Shoot': ['Book crew & equipment','Confirm shoot day schedule','Wardrobe/styling'],
+    'Edit': ['First cut review','Color & sound pass','Client/artist approval'],
+    'Release': ['Set release date','Upload + thumbnail','Promo push'],
+  },
+  Show: {
+    'Concept': ['Define show concept','Budget the production','Pick venue/date'],
+    'Production': ['Book band/production crew','Stage & lighting plan','Rehearsal scheduled'],
+    'Promotion': ['Announce the show','Ticketing live','Press/promo push'],
+    'Show Day': ['Load-in & soundcheck','Day-of run of show','Settle payments'],
+  },
+};
+function buildProjectTasks(type){
+  const tasks = [];
+  Object.entries(PROJECT_TASK_TEMPLATES[type]).forEach(([stage, items])=>{
+    items.forEach(text=> tasks.push({id:'T-'+Math.random().toString(36).slice(2,9), stage, text, done:false}));
+  });
+  return tasks;
+}
+let PROJID = 1;
+function makeProject(artist, type, title, stageIdx, doneUpTo){
+  const stages = PROJECT_TYPES[type];
+  const tasks = buildProjectTasks(type);
+  tasks.forEach(t=>{ if(stages.indexOf(t.stage) < doneUpTo) t.done = true; });
+  return {
+    id:'PR-'+(PROJID++), artistId:artist.id, type, title, stage:stages[stageIdx], tasks,
+    createdAt: fmtISO(addDays(new Date(), -randInt(10,120))),
+    log:[{ts:new Date().toISOString(), type:'system', text:`${type} project "${title}" created for ${artist.name}.`}],
+  };
+}
+function seedProjects(){
+  const projects = [];
+  const titles = { Album:['Unreleased','Chapter Two','Live Sessions'], Tour:['Fall Tour','Winter Run'], Video:['Lead Single','Behind the Scenes'], Show:['Anniversary Concert','Charity Gala'] };
+  ARTISTS.slice(0,4).forEach((artist,i)=>{
+    const type = Object.keys(PROJECT_TYPES)[i % 4];
+    const stages = PROJECT_TYPES[type];
+    const stageIdx = randInt(0, stages.length-1);
+    projects.push(makeProject(artist, type, pick(titles[type]), stageIdx, stageIdx));
+  });
+  return projects;
+}
+const PROJECTS_LS_KEY = 'asp_mock_projects_v1';
+function loadProjects(){ try{ const raw = localStorage.getItem(PROJECTS_LS_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
+function saveProjects(){ try{ localStorage.setItem(PROJECTS_LS_KEY, JSON.stringify(PROJECTS)); }catch(e){} }
+let PROJECTS = loadProjects();
+if(!PROJECTS){ PROJECTS = seedProjects(); saveProjects(); }
+else { PROJID = PROJECTS.reduce((max,p)=>{ const n=parseInt(String(p.id).split('-')[1],10); return isNaN(n)?max:Math.max(max,n+1); }, PROJID); }
+function getProject(id){ return PROJECTS.find(p=>p.id===id); }
+function projectProgress(p){ const done=p.tasks.filter(t=>t.done).length; return {done, total:p.tasks.length}; }
 
 const ADMIN_USERS = [
   {id:'admin_bookings', name:'ASP Office — Bookings', email:'bookings@aspmanagement.com', initials:'AB'},
@@ -517,6 +604,13 @@ let S = {
   showAddArtist:false,
   addArtistForm:{},
   newArtistWelcome:null,
+  projectTypeFilter:'Album',
+  projectId:null,
+  showNewProject:false,
+  newProjectForm:{},
+  dragProjectId:null,
+  newTaskText:'',
+  showDraftUpdate:false,
   calMonth: (()=>{const d=new Date(); d.setDate(1); return d;})(),
   calArtistFilter: [],
   finArtistFilter: 'all',
@@ -694,6 +788,8 @@ function render(){
     ${S.showAddArtist ? renderAddArtistModal() : ''}
     ${S.newArtistWelcome ? renderWelcomeEmailPreview() : ''}
     ${S.dayListDate ? renderDayList() : ''}
+    ${S.showNewProject ? renderNewProjectModal() : ''}
+    ${S.projectId ? renderProjectDetail() : ''}
     ${S.eventId ? renderEventSheet(getEvent(S.eventId)) : ''}
     ${renderInstallBanner()}
   `;
@@ -722,9 +818,9 @@ function renderDayList(){
 function pageTitle(){
   if(S.eventId || S.showNewLead) return document.querySelector('.topbar h1')?.textContent || '';
   const t = {
-    dashboard:'Dashboard', calendar:'Calendar', leads:'Open Leads', artists:'Artists', financials:'Financials',
+    dashboard:'Dashboard', calendar:'Calendar', leads:'Open Leads', artists:'Artists', financials:'Financials', projects:'Projects',
     artist_detail: artistById(S.artistDetailId)?.name || '',
-    a_dashboard:'My Dashboard', a_gigs:'My Gigs',
+    a_dashboard:'My Dashboard', a_gigs:'My Gigs', a_projects:'My Projects',
   };
   return t[S.view] || 'ASP Bookings';
 }
@@ -742,10 +838,10 @@ function renderUserChip(){
 
 const MGMT_NAV_ITEMS = [
   ['dashboard','Dashboard',ICO.dash], ['calendar','Calendar',ICO.cal], ['leads','Leads',ICO.leads],
-  ['artists','Artists',ICO.artists], ['financials','Financials',ICO.money],
+  ['artists','Artists',ICO.artists], ['projects','Projects',ICO.kanban], ['financials','Financials',ICO.money],
 ];
 const ARTIST_NAV_ITEMS = [
-  ['a_dashboard','Dashboard',ICO.dash], ['a_gigs','My Gigs',ICO.leads],
+  ['a_dashboard','Dashboard',ICO.dash], ['a_gigs','My Gigs',ICO.leads], ['a_projects','Projects',ICO.kanban],
 ];
 function isNavActive(v){ return S.view===v || (v==='artists' && S.view==='artist_detail'); }
 
@@ -786,9 +882,11 @@ function renderView(){
     if(S.view==='artists') return renderArtistsPage();
     if(S.view==='artist_detail') return renderArtistDetailPage(S.artistDetailId);
     if(S.view==='financials') return renderFinancialsPage();
+    if(S.view==='projects') return renderProjectsBoard();
   } else {
     if(S.view==='a_dashboard') return renderArtistDashboard(S.user);
     if(S.view==='a_gigs') return renderArtistGigs(S.user);
+    if(S.view==='a_projects') return renderArtistProjects(S.user);
   }
   return '';
 }
@@ -1070,6 +1168,155 @@ function renderFinancialsPage(){
         <td><span class="pill ${sm.cls}">${sm.label}</span></td></tr>`;}).join('')}
     </tbody></table></div>
   `;
+}
+
+/* ============ PROJECTS ============ */
+function renderProjectCard(p){
+  const a = artistById(p.artistId);
+  const {done,total} = projectProgress(p);
+  return `<div class="board-card" draggable="true" data-project-id="${p.id}" data-action="open-project" data-id="${p.id}">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">
+      <span class="avatar" data-slot="${a.slot}" style="width:24px;height:24px;font-size:9px;">${a.initials}</span>
+      <strong style="font-size:12.5px;">${esc(a.name)}</strong>
+    </div>
+    <div style="font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:8px;">${esc(p.title)}</div>
+    <div style="display:flex;align-items:center;gap:6px;">
+      <div style="flex:1;height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden;"><div style="height:100%;width:${total?Math.round(done/total*100):0}%;background:var(--accent);"></div></div>
+      <span class="u-label" style="font-size:10px;">${done}/${total}</span>
+    </div>
+  </div>`;
+}
+function renderProjectsBoard(){
+  const type = S.projectTypeFilter;
+  const stages = PROJECT_TYPES[type];
+  const projects = PROJECTS.filter(p=>p.type===type);
+  return `
+  <div class="section-head">
+    <div class="chip-row">${Object.keys(PROJECT_TYPES).map(t=>`<button class="filter-chip ${type===t?'sel':''}" data-action="filter-project-type" data-type="${t}">${t}</button>`).join('')}</div>
+    <button class="btn btn-sm btn-primary" data-action="open-new-project">${ICO.plus} New Project</button>
+  </div>
+  <div class="board">
+    ${stages.map(stage=>{
+      const colProjects = projects.filter(p=>p.stage===stage);
+      return `<div class="board-col" data-stage="${esc(stage)}">
+        <div class="board-col-head"><span>${esc(stage)}</span><span class="board-col-count">${colProjects.length}</span></div>
+        <div class="board-col-body">
+          ${colProjects.map(p=>renderProjectCard(p)).join('') || `<div class="board-empty">No projects</div>`}
+        </div>
+      </div>`;
+    }).join('')}
+  </div>
+  `;
+}
+function renderArtistProjects(artistId){
+  const projects = PROJECTS.filter(p=>p.artistId===artistId);
+  return `
+    <div class="section-head"><h2>My Projects (${projects.length})</h2></div>
+    ${projects.length? `<div class="grid grid-3">${projects.map(p=>renderProjectCard(p)).join('')}</div>` : `<div class="card empty">No projects yet.</div>`}
+  `;
+}
+function renderDraftUpdate(p){
+  const a = artistById(p.artistId);
+  const {done,total} = projectProgress(p);
+  const nextTask = p.tasks.find(t=>t.stage===p.stage && !t.done);
+  const text = `Hi ${a.name.split(' ')[0]},\n\nQuick update on "${p.title}" — we're currently in the ${p.stage} stage (${done}/${total} tasks done). ${nextTask? 'Next up: '+nextTask.text+'.' : 'Ready to move to the next stage soon.'}\n\n— ASP Team`;
+  return `<div class="card card-pad">
+    <div class="u-label" style="margin-bottom:6px;">Draft Update to Artist</div>
+    <textarea readonly style="width:100%;min-height:110px;padding:10px;border-radius:8px;border:1px solid var(--border-strong);background:var(--surface-2);font-size:12.5px;font-family:var(--font-body);color:var(--ink);">${esc(text)}</textarea>
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <button class="btn btn-sm btn-primary" data-action="send-project-update" data-id="${p.id}" style="flex:1;">Send</button>
+      <button class="btn btn-sm" data-action="cancel-draft-update" style="flex:1;">Cancel</button>
+    </div>
+  </div>`;
+}
+function renderProjectDetail(){
+  const p = getProject(S.projectId); if(!p) return '';
+  const a = artistById(p.artistId);
+  const isAdmin = isAdminUser(S.user);
+  const stages = PROJECT_TYPES[p.type];
+  const curIdx = stages.indexOf(p.stage);
+  const {done,total} = projectProgress(p);
+  const suggestions = p.tasks.filter(t=>t.stage===p.stage && !t.done).slice(0,3);
+
+  return `<div class="overlay" data-action="overlay-close-project">
+    <div class="sheet" data-stop>
+      <div class="sheet-head">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span class="avatar" data-slot="${a.slot}" style="width:38px;height:38px;">${a.initials}</span>
+          <div><strong style="font-family:var(--font-display);font-size:1.2rem;display:block;">${esc(p.title)}</strong>
+          <span class="pill pill-accent">${esc(p.type)} · ${esc(a.name)}</span></div>
+        </div>
+        <button class="icon-btn" data-action="close-project">${ICO.x}</button>
+      </div>
+      <div class="sheet-body">
+        <div class="timeline">
+          ${stages.map((s,i)=>`<div class="tl-step ${i<curIdx?'done':''} ${i===curIdx?'current':''} ${isAdmin?'clickable':''}" ${isAdmin?`data-action="set-project-stage" data-id="${p.id}" data-stage="${esc(s)}"`:''}><span class="tl-line"></span>
+            <span class="tl-dot">${i<curIdx?ICO.check:i+1}</span><span class="tl-label">${esc(s)}</span></div>`).join('')}
+        </div>
+
+        <div class="card card-pad">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div class="u-label">Progress</div><span class="u-mono" style="font-size:12px;">${done}/${total} tasks</span>
+          </div>
+          <div style="height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden;"><div style="height:100%;width:${total?Math.round(done/total*100):0}%;background:var(--good);"></div></div>
+        </div>
+
+        <div class="card card-pad" style="border-color:var(--accent);background:var(--accent-wash);">
+          <div style="display:flex;align-items:center;gap:8px;color:var(--accent-ink);font-weight:700;font-size:13px;">${ICO.sparkle} AI Assistant</div>
+          ${suggestions.length? `<div style="margin-top:8px;">
+            <div class="u-label" style="color:var(--accent-ink);opacity:.8;">Suggested next actions</div>
+            <ul style="margin:6px 0 0;padding-left:18px;font-size:12.5px;color:var(--accent-ink);line-height:1.7;">${suggestions.map(t=>`<li>${esc(t.text)}</li>`).join('')}</ul>
+          </div>` : `<p style="font-size:12.5px;color:var(--accent-ink);margin:8px 0 0;">All ${esc(p.stage)} tasks are done — ready to move to the next stage.</p>`}
+          ${isAdmin? `<button class="btn btn-sm" style="margin-top:10px;background:var(--surface);" data-action="draft-update" data-id="${p.id}">Draft update for ${esc(a.name.split(' ')[0])}</button>`:''}
+        </div>
+
+        ${S.showDraftUpdate? renderDraftUpdate(p) : ''}
+
+        <div>
+          <div class="section-head" style="margin-bottom:8px;"><h2 style="font-size:1rem;">Tasks</h2></div>
+          <div class="log">
+            ${p.tasks.map(t=>`<div class="log-item" style="align-items:center;">
+              <input type="checkbox" ${t.done?'checked':''} data-action="toggle-task" data-id="${p.id}" data-taskid="${t.id}" style="width:16px;height:16px;flex:none;"/>
+              <span style="flex:1;${t.done?'text-decoration:line-through;color:var(--ink-3);':''}">${esc(t.text)}<div class="log-time">${esc(t.stage)}</div></span>
+              ${isAdmin?`<button class="icon-btn" data-action="remove-task" data-id="${p.id}" data-taskid="${t.id}" style="width:24px;height:24px;">${ICO.x}</button>`:''}
+            </div>`).join('')}
+          </div>
+          ${isAdmin? `<div data-form="task" style="display:flex;gap:6px;margin-top:10px;">
+            <input data-field="newTaskText" placeholder="Add a task…" style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);" value="${esc(S.newTaskText||'')}"/>
+            <button class="btn btn-sm" data-action="add-task" data-id="${p.id}">Add</button>
+          </div>`:''}
+        </div>
+
+        <div>
+          <div class="section-head" style="margin-bottom:8px;"><h2 style="font-size:1rem;">Activity</h2></div>
+          <div class="log">${p.log.slice().reverse().map(l=>`<div class="log-item">
+            <span class="log-ico">${l.type==='email'?ICO.mail:l.type==='success'?ICO.check:ICO.bell}</span>
+            <span><div>${esc(l.text)}</div><div class="log-time">${new Date(l.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div></span>
+          </div>`).join('')}</div>
+        </div>
+      </div>
+    </div>
+  </div>`;
+}
+function renderNewProjectModal(){
+  const f = S.newProjectForm;
+  const type = f.type || 'Album';
+  return `<div class="overlay center" data-action="overlay-close-newproject">
+    <div class="modal" data-stop data-form="newproject">
+      <div class="sheet-head"><h2 style="font-size:1.3rem;">New Project</h2><button class="icon-btn" data-action="close-new-project">${ICO.x}</button></div>
+      <div class="sheet-body">
+        <div class="field"><label>Artist</label>
+          <div class="artist-pick">${ARTISTS.map(a=>`<div class="artist-opt ${f.artistId===a.id?'sel':''}" data-action="pick-project-artist" data-id="${a.id}">
+            <span class="avatar" data-slot="${a.slot}" style="width:34px;height:34px;font-size:12px;">${a.initials}</span><span>${a.name}</span></div>`).join('')}</div>
+        </div>
+        <div class="field"><label>Type</label>
+          <div class="chip-row">${Object.keys(PROJECT_TYPES).map(t=>`<button class="filter-chip ${type===t?'sel':''}" data-action="pick-project-type" data-type="${t}">${t}</button>`).join('')}</div>
+        </div>
+        <div class="field"><label>Title</label><input data-field="title" value="${esc(f.title||'')}" placeholder="e.g. Fall Tour 2026"/></div>
+        <button class="btn btn-primary btn-block" data-action="confirm-add-project" style="margin-top:6px;">Create Project</button>
+      </div>
+    </div>
+  </div>`;
 }
 
 /* ============ ARTIST-SIDE ============ */
@@ -1582,6 +1829,49 @@ function doAddArtist(){
   toast(`${name} added — welcome email sent to ${email}.`, 'email');
   render();
 }
+function logProjectEvent(p, type, text){ p.log.push({ts:new Date().toISOString(), type, text}); }
+function doAddProject(){
+  const f = S.newProjectForm;
+  if(!f.artistId || !(f.title||'').trim()){ toast('Pick an artist and enter a title.', 'system'); return; }
+  const type = f.type || 'Album';
+  const artist = artistById(f.artistId);
+  const proj = makeProject(artist, type, f.title.trim(), 0, 0);
+  PROJECTS.unshift(proj); saveProjects();
+  S.showNewProject=false; S.newProjectForm={};
+  toast(`Project created — starter checklist generated for ${artist.name}.`, 'success');
+  S.projectTypeFilter = type;
+  S.projectId = proj.id;
+  render();
+}
+function doSetProjectStage(id, stage){
+  const p = getProject(id);
+  if(p.stage===stage) return;
+  p.stage = stage;
+  logProjectEvent(p,'system',`Moved to ${stage}.`);
+  saveProjects(); render();
+}
+function doToggleTask(id, taskId){
+  const p = getProject(id); const t = p.tasks.find(t=>t.id===taskId);
+  if(t){ t.done = !t.done; saveProjects(); render(); }
+}
+function doRemoveTask(id, taskId){
+  const p = getProject(id);
+  p.tasks = p.tasks.filter(t=>t.id!==taskId);
+  saveProjects(); render();
+}
+function doAddTask(id){
+  const text = (S.newTaskText||'').trim(); if(!text) return;
+  const p = getProject(id);
+  p.tasks.push({id:'T-'+Math.random().toString(36).slice(2,9), stage:p.stage, text, done:false});
+  logProjectEvent(p,'system',`Task added: ${text}`);
+  S.newTaskText=''; saveProjects(); render();
+}
+function doSendProjectUpdate(id){
+  const p = getProject(id);
+  logProjectEvent(p,'email',`Status update emailed to ${artistById(p.artistId).name}.`);
+  S.showDraftUpdate=false; saveProjects();
+  toast('Update sent to artist.', 'email'); render();
+}
 function doSubmitLead(){
   const f = S.newLeadForm;
   if(!f.artistId || !f.clientName || !f.date || !f.venue || !f.city || !f.price){ toast('Please fill in artist, client, date, venue, city and price.', 'system'); return; }
@@ -1623,7 +1913,9 @@ function bindGlobal(){
     el.addEventListener('input', e=>{
       const key = el.getAttribute('data-field');
       const form = el.closest('[data-form]')?.getAttribute('data-form');
-      const target = form==='flight' ? S.flightForm : form==='charge' ? S.addChargeForm : form==='addartist' ? S.addArtistForm : S.newLeadForm;
+      if(form==='task'){ S.newTaskText = el.value; return; }
+      const formTargets = { flight:S.flightForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm };
+      const target = formTargets[form] || S.newLeadForm;
       target[key] = el.type==='checkbox'? el.checked : el.value;
     });
   });
@@ -1684,6 +1976,23 @@ function bindGlobal(){
       case 'ics': downloadIcs(getEvent(id)); break;
       case 'reset-demo': if(confirm('Reset all demo data back to the seeded example set?')) resetDemo(); break;
       case 'export-csv': exportCSV(); break;
+      case 'filter-project-type': S.projectTypeFilter = t.getAttribute('data-type'); render(); break;
+      case 'open-project': S.projectId = id; S.showDraftUpdate=false; render(); break;
+      case 'close-project': S.projectId = null; S.showDraftUpdate=false; render(); break;
+      case 'overlay-close-project': if(e.target===t){ S.projectId=null; S.showDraftUpdate=false; render(); } break;
+      case 'set-project-stage': doSetProjectStage(id, t.getAttribute('data-stage')); break;
+      case 'toggle-task': doToggleTask(id, t.getAttribute('data-taskid')); break;
+      case 'remove-task': doRemoveTask(id, t.getAttribute('data-taskid')); break;
+      case 'add-task': doAddTask(id); break;
+      case 'draft-update': S.showDraftUpdate = true; render(); break;
+      case 'cancel-draft-update': S.showDraftUpdate = false; render(); break;
+      case 'send-project-update': doSendProjectUpdate(id); break;
+      case 'open-new-project': S.newProjectForm={type:'Album'}; S.showNewProject=true; render(); break;
+      case 'close-new-project': S.showNewProject=false; render(); break;
+      case 'overlay-close-newproject': if(e.target===t){ S.showNewProject=false; render(); } break;
+      case 'pick-project-artist': S.newProjectForm.artistId = id; render(); break;
+      case 'pick-project-type': S.newProjectForm.type = t.getAttribute('data-type'); render(); break;
+      case 'confirm-add-project': doAddProject(); break;
       case 'open-add-artist': S.addArtistForm={}; S.showAddArtist=true; render(); break;
       case 'close-add-artist': S.showAddArtist=false; render(); break;
       case 'overlay-close-addartist': if(e.target===t){ S.showAddArtist=false; render(); } break;
@@ -1705,6 +2014,17 @@ function bindGlobal(){
   });
   document.querySelectorAll('[data-action="upload-prep"]').forEach(inp=>{
     inp.addEventListener('change', ()=>{ if(inp.files.length) doUploadPrep(inp.getAttribute('data-id'), inp.files); });
+  });
+  document.querySelectorAll('.board-card[draggable]').forEach(card=>{
+    card.addEventListener('dragstart', ()=>{ S.dragProjectId = card.getAttribute('data-project-id'); });
+  });
+  document.querySelectorAll('.board-col').forEach(col=>{
+    col.addEventListener('dragover', (e)=>{ e.preventDefault(); col.classList.add('drag-over'); });
+    col.addEventListener('dragleave', ()=>{ col.classList.remove('drag-over'); });
+    col.addEventListener('drop', (e)=>{
+      e.preventDefault(); col.classList.remove('drag-over');
+      if(S.dragProjectId){ doSetProjectStage(S.dragProjectId, col.getAttribute('data-stage')); S.dragProjectId = null; }
+    });
   });
 }
 
