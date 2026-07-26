@@ -17,7 +17,7 @@
   --good:#1F8A54; --good-wash:#E5F5EC; --good-ink:#146B3F;
   --warn:#C6860B; --warn-wash:#FFF2D6; --warn-ink:#8F5E0A;
   --crit:#D64444; --crit-wash:#FDE9E9; --crit-ink:#A32E2E;
-  --cat-1:#2a78d6; --cat-2:#1a8a1a; --cat-3:#e87ba4; --cat-4:#c98100; --cat-5:#1baf7a; --cat-6:#eb6834;
+  --cat-1:#2a78d6; --cat-2:#1a8a1a; --cat-3:#e87ba4; --cat-4:#c98100; --cat-5:#1baf7a; --cat-6:#eb6834; --cat-7:#4a3aa7;
   --shadow-sm:0 1px 2px rgba(20,20,26,.05),0 1px 1px rgba(20,20,26,.03);
   --shadow-md:0 10px 28px rgba(20,20,26,.08),0 2px 6px rgba(20,20,26,.04);
   --r-sm:6px; --r-md:10px; --r-lg:16px;
@@ -35,7 +35,7 @@
     --good:#3CC989; --good-wash:#173420; --good-ink:#8CEBB8;
     --warn:#F0B94A; --warn-wash:#3F2F10; --warn-ink:#F5CE7E;
     --crit:#F07A7A; --crit-wash:#3F1C1C; --crit-ink:#F5A8A8;
-    --cat-1:#3987e5; --cat-2:#2fa32f; --cat-3:#d55181; --cat-4:#c98500; --cat-5:#199e70; --cat-6:#d95926;
+    --cat-1:#3987e5; --cat-2:#2fa32f; --cat-3:#d55181; --cat-4:#c98500; --cat-5:#199e70; --cat-6:#d95926; --cat-7:#9085e9;
     --shadow-sm:0 1px 2px rgba(0,0,0,.3); --shadow-md:0 10px 28px rgba(0,0,0,.4);
   }
 }
@@ -60,7 +60,7 @@
   --good:#1F8A54; --good-wash:#E5F5EC; --good-ink:#146B3F;
   --warn:#C6860B; --warn-wash:#FFF2D6; --warn-ink:#8F5E0A;
   --crit:#D64444; --crit-wash:#FDE9E9; --crit-ink:#A32E2E;
-  --cat-1:#2a78d6; --cat-2:#1a8a1a; --cat-3:#e87ba4; --cat-4:#c98100; --cat-5:#1baf7a; --cat-6:#eb6834;
+  --cat-1:#2a78d6; --cat-2:#1a8a1a; --cat-3:#e87ba4; --cat-4:#c98100; --cat-5:#1baf7a; --cat-6:#eb6834; --cat-7:#4a3aa7;
   --shadow-sm:0 1px 2px rgba(20,20,26,.05),0 1px 1px rgba(20,20,26,.03);
   --shadow-md:0 10px 28px rgba(20,20,26,.08),0 2px 6px rgba(20,20,26,.04);
 }
@@ -132,11 +132,11 @@ input,select,textarea{font-family:inherit; font-size:inherit;}
 .avatar{ display:inline-flex; align-items:center; justify-content:center; border-radius:50%; font-weight:700; color:#fff; flex:none; font-family:var(--font-body); letter-spacing:.02em; }
 .avatar[data-slot="1"]{ background:var(--cat-1); } .avatar[data-slot="2"]{ background:var(--cat-2); }
 .avatar[data-slot="3"]{ background:var(--cat-3); } .avatar[data-slot="4"]{ background:var(--cat-4); }
-.avatar[data-slot="5"]{ background:var(--cat-5); } .avatar[data-slot="6"]{ background:var(--cat-6); }
+.avatar[data-slot="5"]{ background:var(--cat-5); } .avatar[data-slot="6"]{ background:var(--cat-6); } .avatar[data-slot="7"]{ background:var(--cat-7); }
 .dot{ width:9px; height:9px; border-radius:50%; flex:none; display:inline-block; }
 .dot[data-slot="1"]{ background:var(--cat-1); } .dot[data-slot="2"]{ background:var(--cat-2); }
 .dot[data-slot="3"]{ background:var(--cat-3); } .dot[data-slot="4"]{ background:var(--cat-4); }
-.dot[data-slot="5"]{ background:var(--cat-5); } .dot[data-slot="6"]{ background:var(--cat-6); }
+.dot[data-slot="5"]{ background:var(--cat-5); } .dot[data-slot="6"]{ background:var(--cat-6); } .dot[data-slot="7"]{ background:var(--cat-7); }
 
 /* ============ CARDS / GRID ============ */
 .card{ background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-sm); }
@@ -344,7 +344,7 @@ body:has(.bottom-nav) .install-banner{ bottom:60px; }
   .cal-evt{ font-size:9px; padding:1px 3px; }
   .cal-dow{ font-size:9px; }
   .stat-tile .val{ font-size:1.7rem; }
-  .bottom-nav{ display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--border); padding:8px 6px calc(8px + env(safe-area-inset-bottom)); justify-content:space-around; z-index:30; }
+  .bottom-nav{ display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--border); padding:8px max(4px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left)); justify-content:space-around; z-index:30; box-sizing:border-box; }
   .bn-item{ display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; font-weight:700; color:var(--ink-3); padding:4px 4px; border-radius:8px; flex:1; min-width:0; }
   .bn-item span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .bn-item.active{ color:var(--accent); }
@@ -357,6 +357,9 @@ body:has(.bottom-nav) .install-banner{ bottom:60px; }
   .user-chip{ padding:4px; }
   .cal-cell{ min-height:52px; }
   .cal-evt span{ max-width:34px; }
+  .bn-item span{ display:none; }
+  .bn-item .ico{ width:20px; height:20px; }
+  .bn-item{ padding:8px 2px; }
 }
 </style>
 
@@ -403,14 +406,20 @@ let ARTISTS = [
   {id:'benny',  name:'Benny Friedman', slot:2, initials:'BF', email:'benny@aspmanagement.com'},
   {id:'moshe',  name:'Moshe Tischler', slot:3, initials:'MT', email:'moshe@aspmanagement.com'},
   {id:'yaakov', name:'Yaakov Rosenblum', slot:4, initials:'YR', email:'yaakov@aspmanagement.com'},
-  {id:'eli',    name:'Eli Marcus', slot:5, initials:'EM', email:'eli@aspmanagement.com'},
+  {id:'eli',    name:'Eli Marcus', slot:7, initials:'EM', email:'eli@aspmanagement.com'},
   {id:'dovie',  name:'Dovie Nueberger', slot:6, initials:'DN', email:'dovie@aspmanagement.com'},
 ];
 const artistById = (id)=>ARTISTS.find(a=>a.id===id);
 const ARTISTS_LS_KEY = 'asp_mock_artists_v1';
 function loadArtists(){ try{ const raw = localStorage.getItem(ARTISTS_LS_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
 function saveArtists(){ try{ localStorage.setItem(ARTISTS_LS_KEY, JSON.stringify(ARTISTS)); }catch(e){} }
-{ const saved = loadArtists(); if(saved && saved.length) ARTISTS = saved; else saveArtists(); }
+{ const saved = loadArtists();
+  if(saved && saved.length){
+    const canonical = {baruch:1, benny:2, moshe:3, yaakov:4, eli:7, dovie:6};
+    saved.forEach(a=>{ if(canonical[a.id]) a.slot = canonical[a.id]; });
+    ARTISTS = saved; saveArtists();
+  } else saveArtists();
+}
 
 /* ============ PROJECTS ============ */
 const PROJECT_TYPES = {
@@ -460,7 +469,7 @@ function makeProject(artist, type, title, stageIdx, doneUpTo){
   const tasks = buildProjectTasks(type);
   tasks.forEach(t=>{ if(stages.indexOf(t.stage) < doneUpTo) t.done = true; });
   return {
-    id:'PR-'+(PROJID++), artistId:artist.id, type, title, stage:stages[stageIdx], tasks,
+    id:'PR-'+(PROJID++), artistId:artist.id, type, title, stage:stages[stageIdx], tasks, comments:[],
     createdAt: fmtISO(addDays(new Date(), -randInt(10,120))),
     log:[{ts:new Date().toISOString(), type:'system', text:`${type} project "${title}" created for ${artist.name}.`}],
   };
@@ -488,7 +497,7 @@ function projectProgress(p){ const done=p.tasks.filter(t=>t.done).length; return
 const ADMIN_USERS = [
   {id:'admin_bookings', name:'ASP Office — Bookings', email:'bookings@aspmanagement.com', initials:'AB'},
   {id:'admin_bookkeeping', name:'ASP Office — Bookkeeping', email:'bookkeeping@aspmanagement.com', initials:'AK'},
-  {id:'admin_ceo', name:'ASP Office — CEO', email:'ceo@aspmanagement.com', initials:'CEO'},
+  {id:'admin_ceo', name:'ASP Office — CEO', email:'ilan@aspmanagement.com', initials:'CEO'},
 ];
 const isAdminUser = (id)=>ADMIN_USERS.some(u=>u.id===id);
 const adminById = (id)=>ADMIN_USERS.find(u=>u.id===id);
@@ -528,6 +537,8 @@ function makeEvent(artist, offsetDays, forceStatus){
   const flightNeeded = rng() < 0.4;
   const flightBooked = flightNeeded && (status==='booked'||status==='paid') && rng()<0.65;
   const client = FIRST[randInt(0,FIRST.length-1)]+' '+LAST[randInt(0,LAST.length-1)];
+  const startTime = pick(['18:00','19:00','19:30','20:00','21:00']);
+  const endTimeVal = addMinutesToTime(startTime, randInt(2,3)*60);
   const v = pick(VENUES);
   const charges = [];
   if(flightBooked && rng()<0.6) charges.push({id:'CH-'+randInt(1,999999), label:'Flights', amount:randInt(2,6)*100});
@@ -552,7 +563,7 @@ function makeEvent(artist, offsetDays, forceStatus){
     clientEmail: client.toLowerCase().replace(' ','.')+'@example.com',
     clientPhone: '(917) '+randInt(200,899)+'-'+randInt(1000,9999),
     date: fmtISO(date),
-    time: pick(['18:00','19:00','19:30','20:00','21:00']),
+    time: startTime, endTime: endTimeVal,
     venue: v.venue, city: v.city, state: v.state,
     price, commission, balance,
     status,
@@ -611,6 +622,8 @@ let S = {
   dragProjectId:null,
   newTaskText:'',
   showDraftUpdate:false,
+  projectTab:'tasks',
+  newCommentText:'',
   calMonth: (()=>{const d=new Date(); d.setDate(1); return d;})(),
   calArtistFilter: [],
   finArtistFilter: 'all',
@@ -634,6 +647,8 @@ function getEvent(id){ return S.events.find(e=>e.id===id); }
 function fmtDate(iso){ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-US',{weekday:'short', month:'short', day:'numeric', year:'numeric'}); }
 function fmtDateShort(iso){ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-US',{month:'short', day:'numeric'}); }
 function fmtTime(t){ const [h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'AM'; const hh=((h+11)%12)+1; return `${hh}:${String(m).padStart(2,'0')} ${ap}`; }
+function fmtTimeRange(start, end){ return end? `${fmtTime(start)} – ${fmtTime(end)}` : fmtTime(start); }
+function addMinutesToTime(t, mins){ const [h,m]=t.split(':').map(Number); const total=(h*60+m+mins+1440)%1440; return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`; }
 function daysUntil(iso){ const today=new Date(); today.setHours(0,0,0,0); const d=new Date(iso+'T00:00:00'); return Math.round((d-today)/86400000); }
 function isPast(iso){ return daysUntil(iso) < 0; }
 function fullLocation(ev){ return `${ev.venue}, ${ev.city}, ${ev.state}`; }
@@ -721,15 +736,21 @@ function renderInstallBanner(){
 
 S.showInstallBanner = shouldShowInstallBanner();
 
-function navigate(view, opts={}){ S.view=view; Object.assign(S, opts); render(); window.scrollTo({top:0}); }
-function openEvent(id){ S.eventId=id; S.showFlightForm=false; S.showContract=false; S.showAddCharge=false; S.showEventMenu=false; render(); }
-function closeSheet(){ S.eventId=null; S.showNewLead=false; S.showFlightForm=false; S.showContract=false; S.showAddCharge=false; S.showEventMenu=false; render(); }
+function closeAllOverlays(){
+  S.eventId=null; S.projectId=null; S.showNewLead=false; S.showAddArtist=false; S.newArtistWelcome=null;
+  S.dayListDate=null; S.showNewProject=false; S.showFlightForm=false; S.showContract=false;
+  S.showAddCharge=false; S.showEventMenu=false; S.showDraftUpdate=false; S.projectTab='tasks';
+}
+function navigate(view, opts={}){ closeAllOverlays(); S.view=view; Object.assign(S, opts); render(); window.scrollTo({top:0}); }
+function openEvent(id){ closeAllOverlays(); S.eventId=id; render(); }
+function closeSheet(){ closeAllOverlays(); render(); }
 
 /* ============ GOOGLE CAL / ICS ============ */
 function gcalUrl(ev){
   const artist = artistById(ev.artistId);
   const start = ev.date.replace(/-/g,'')+'T'+ev.time.replace(':','')+'00';
-  const endDate = new Date(ev.date+'T'+ev.time+':00'); endDate.setHours(endDate.getHours()+3);
+  const endDate = ev.endTime ? new Date(ev.date+'T'+ev.endTime+':00') : new Date(ev.date+'T'+ev.time+':00');
+  if(!ev.endTime) endDate.setHours(endDate.getHours()+3);
   const end = endDate.toISOString().slice(0,19).replace(/[-:]/g,'').replace('T','T');
   const details = `${ev.type} for ${artist.name}. Client: ${ev.clientName}. Booked via ASP.`;
   const params = new URLSearchParams({action:'TEMPLATE', text:`${artist.name} — ${ev.type}`, dates:`${start}/${end}`, details, location:fullLocation(ev)});
@@ -738,7 +759,8 @@ function gcalUrl(ev){
 function downloadIcs(ev){
   const artist = artistById(ev.artistId);
   const start = ev.date.replace(/-/g,'')+'T'+ev.time.replace(':','')+'00';
-  const endDate = new Date(ev.date+'T'+ev.time+':00'); endDate.setHours(endDate.getHours()+3);
+  const endDate = ev.endTime ? new Date(ev.date+'T'+ev.endTime+':00') : new Date(ev.date+'T'+ev.time+':00');
+  if(!ev.endTime) endDate.setHours(endDate.getHours()+3);
   const end = endDate.toISOString().slice(0,19).replace(/[-:]/g,'');
   const ics = ['BEGIN:VCALENDAR','VERSION:2.0','BEGIN:VEVENT',`UID:${ev.id}@asp-bookings`,`DTSTART:${start}`,`DTEND:${end}`,`SUMMARY:${artist.name} — ${ev.type}`,`LOCATION:${fullLocation(ev)}`,`DESCRIPTION:Client ${ev.clientName}. Booked via ASP.`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
   const blob = new Blob([ics], {type:'text/calendar'});
@@ -934,6 +956,7 @@ function renderMgmtDashboard(){
   const intlTrips = S.events.filter(e=>isInternational(e) && !isPast(e.date) && ['booked','paid'].includes(e.status)).sort((a,b)=>a.date.localeCompare(b.date));
 
   return `
+  ${S.user==='admin_ceo' ? `<h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:16px;">Welcome, CEO</h2>` : ''}
   <div class="grid stat-row" style="margin-bottom:20px;">
     ${statTile('Open Leads', open.length, 'Awaiting contract / deposit', 'leads')}
     ${statTile('Awaiting Balance', awaitingBalance.length, 'Booked, balance not yet in', 'leads')}
@@ -1273,7 +1296,13 @@ function renderProjectDetail(){
         ${S.showDraftUpdate? renderDraftUpdate(p) : ''}
 
         <div>
-          <div class="section-head" style="margin-bottom:8px;"><h2 style="font-size:1rem;">Tasks</h2></div>
+          <div class="tabbar" style="margin-bottom:14px;">
+            <a href="#" class="tab ${S.projectTab==='tasks'?'active':''}" data-action="set-project-tab" data-tab="tasks">Tasks</a>
+            <a href="#" class="tab ${S.projectTab==='conversation'?'active':''}" data-action="set-project-tab" data-tab="conversation">Conversation</a>
+            <a href="#" class="tab ${S.projectTab==='activity'?'active':''}" data-action="set-project-tab" data-tab="activity">Activity</a>
+          </div>
+
+          ${S.projectTab==='tasks' ? `
           <div class="log">
             ${p.tasks.map(t=>`<div class="log-item" style="align-items:center;">
               <input type="checkbox" ${t.done?'checked':''} data-action="toggle-task" data-id="${p.id}" data-taskid="${t.id}" style="width:16px;height:16px;flex:none;"/>
@@ -1285,14 +1314,28 @@ function renderProjectDetail(){
             <input data-field="newTaskText" placeholder="Add a task…" style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);" value="${esc(S.newTaskText||'')}"/>
             <button class="btn btn-sm" data-action="add-task" data-id="${p.id}">Add</button>
           </div>`:''}
-        </div>
+          <p style="font-size:11.5px;color:var(--ink-3);margin:10px 0 0;">Checking off a task doesn't capture details — post the actual decision (which cities, which venue, etc.) in Conversation.</p>
+          ` : ''}
 
-        <div>
-          <div class="section-head" style="margin-bottom:8px;"><h2 style="font-size:1rem;">Activity</h2></div>
+          ${S.projectTab==='conversation' ? `
+          <div class="log">
+            ${p.comments.length? p.comments.map(c=>{const author = isAdminUser(c.authorId)? (adminById(c.authorId)?.name||'Office') : (artistById(c.authorId)?.name||'Artist');
+              return `<div class="log-item"><span class="log-ico">${ICO.bell}</span>
+              <span><div><strong>${esc(author)}:</strong> ${esc(c.text)}</div><div class="log-time">${new Date(c.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div></span></div>`;
+            }).join('') : `<p style="font-size:12.5px;color:var(--ink-3);margin:0;">No messages yet — this is where decisions and details (like which cities got picked) get logged.</p>`}
+          </div>
+          <div data-form="comment" style="display:flex;gap:6px;margin-top:10px;">
+            <input data-field="newCommentText" placeholder="Post an update or decision…" style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);" value="${esc(S.newCommentText||'')}"/>
+            <button class="btn btn-sm" data-action="add-comment" data-id="${p.id}">Post</button>
+          </div>
+          ` : ''}
+
+          ${S.projectTab==='activity' ? `
           <div class="log">${p.log.slice().reverse().map(l=>`<div class="log-item">
             <span class="log-ico">${l.type==='email'?ICO.mail:l.type==='success'?ICO.check:ICO.bell}</span>
             <span><div>${esc(l.text)}</div><div class="log-time">${new Date(l.ts).toLocaleString('en-US',{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'})}</div></span>
           </div>`).join('')}</div>
+          ` : ''}
         </div>
       </div>
     </div>
@@ -1367,9 +1410,10 @@ function renderNewLeadModal(){
           <div class="field"><label>Client Email</label><input data-field="clientEmail" value="${esc(f.clientEmail||'')}" placeholder="name@example.com"/></div>
           <div class="field"><label>Client Phone</label><input data-field="clientPhone" value="${esc(f.clientPhone||'')}" placeholder="(555) 555-5555"/></div>
         </div>
+        <div class="field"><label>Date</label><input type="date" data-field="date" value="${f.date||''}"/></div>
         <div class="field-row">
-          <div class="field"><label>Date</label><input type="date" data-field="date" value="${f.date||''}"/></div>
-          <div class="field"><label>Time</label><input type="time" data-field="time" value="${f.time||'19:00'}"/></div>
+          <div class="field"><label>Start Time</label><input type="time" data-field="time" value="${f.time||'19:00'}"/></div>
+          <div class="field"><label>End Time</label><input type="time" data-field="endTime" value="${f.endTime||''}"/></div>
         </div>
         <div class="field"><label>Venue Name</label><input data-field="venue" value="${esc(f.venue||'')}" placeholder="Ateres Chaya Hall"/></div>
         <div class="field-row">
@@ -1468,7 +1512,7 @@ function renderEventSheet(ev){
         <div class="card card-pad" style="display:flex;flex-direction:column;gap:9px;">
           <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.pin} Client</span><strong>${esc(ev.clientName)}</strong></div>
           <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">Type</span><strong>${esc(ev.type)}</strong></div>
-          <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.clock} Date &amp; Time</span><strong class="u-mono">${fmtDate(ev.date)} · ${fmtTime(ev.time)}</strong></div>
+          <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.clock} Date &amp; Time</span><strong class="u-mono">${fmtDate(ev.date)} · ${fmtTimeRange(ev.time, ev.endTime)}</strong></div>
           <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.pin} Venue</span><strong style="text-align:right;">${esc(ev.venue)}<br/><span style="font-weight:500;color:var(--ink-2);">${esc(ev.city)}, ${esc(ev.state)}</span></strong></div>
           ${isAdmin?`<div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.mail} Contact</span><strong style="text-align:right;">${esc(ev.clientEmail)}<br/><span style="font-weight:500;color:var(--ink-2);">${esc(ev.clientPhone)}</span></strong></div>`:''}
         </div>
@@ -1666,7 +1710,7 @@ function renderContractDoc(){
           <div class="doc-facts">
             <div><span class="k">Event Type</span><span>${esc(ev.type)}</span></div>
             <div><span class="k">Date</span><span>${fmtDate(ev.date)}</span></div>
-            <div><span class="k">Performance Time</span><span>${fmtTime(ev.time)}</span></div>
+            <div><span class="k">Performance Time</span><span>${fmtTimeRange(ev.time, ev.endTime)}</span></div>
             <div><span class="k">Venue</span><span>${esc(ev.venue)}</span></div>
             <div><span class="k">City, State</span><span>${esc(ev.city)}, ${esc(ev.state)}</span></div>
           </div>
@@ -1790,7 +1834,7 @@ function doRemovePrep(id, prepId){
 function doShareEvent(id){
   S.showEventMenu = false;
   const ev = getEvent(id); const a = artistById(ev.artistId);
-  const text = `${a.name} — ${ev.type}\n${fmtDate(ev.date)} · ${fmtTime(ev.time)}\n${ev.venue}, ${ev.city}, ${ev.state}`;
+  const text = `${a.name} — ${ev.type}\n${fmtDate(ev.date)} · ${fmtTimeRange(ev.time, ev.endTime)}\n${ev.venue}, ${ev.city}, ${ev.state}`;
   if(navigator.share){
     navigator.share({title:`${a.name} — ${ev.type}`, text}).catch(()=>{});
   } else if(navigator.clipboard){
@@ -1866,6 +1910,12 @@ function doAddTask(id){
   logProjectEvent(p,'system',`Task added: ${text}`);
   S.newTaskText=''; saveProjects(); render();
 }
+function doAddComment(id){
+  const text = (S.newCommentText||'').trim(); if(!text) return;
+  const p = getProject(id);
+  p.comments.push({id:'C-'+Math.random().toString(36).slice(2,9), authorId:S.user, text, ts:new Date().toISOString()});
+  S.newCommentText=''; saveProjects(); render();
+}
 function doSendProjectUpdate(id){
   const p = getProject(id);
   logProjectEvent(p,'email',`Status update emailed to ${artistById(p.artistId).name}.`);
@@ -1878,7 +1928,7 @@ function doSubmitLead(){
   const price = Number(f.price); const commission = Math.round(price*0.15);
   const ev = {
     id:'EV-'+(EVID++), artistId:f.artistId, type: f.type||EVENT_TYPES[0], clientName:f.clientName,
-    clientEmail: f.clientEmail||'', clientPhone: f.clientPhone||'', date: f.date, time: f.time||'19:00',
+    clientEmail: f.clientEmail||'', clientPhone: f.clientPhone||'', date: f.date, time: f.time||'19:00', endTime: f.endTime||null,
     venue: f.venue, city: f.city, state: f.state||'',
     price, commission, balance: price-commission, status:'lead', depositReceived:false, depositReceivedDate:null,
     balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
@@ -1914,6 +1964,7 @@ function bindGlobal(){
       const key = el.getAttribute('data-field');
       const form = el.closest('[data-form]')?.getAttribute('data-form');
       if(form==='task'){ S.newTaskText = el.value; return; }
+      if(form==='comment'){ S.newCommentText = el.value; return; }
       const formTargets = { flight:S.flightForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm };
       const target = formTargets[form] || S.newLeadForm;
       target[key] = el.type==='checkbox'? el.checked : el.value;
@@ -1937,12 +1988,12 @@ function bindGlobal(){
       case 'hide-chooser': S.showChooser=false; render(); break;
       case 'nav': navigate(t.getAttribute('data-view')); break;
       case 'open-event': openEvent(id); break;
-      case 'open-day': S.dayListDate = t.getAttribute('data-date'); render(); break;
+      case 'open-day': closeAllOverlays(); S.dayListDate = t.getAttribute('data-date'); render(); break;
       case 'close-daylist': S.dayListDate = null; render(); break;
       case 'dayoverlay-close': if(e.target===t){ S.dayListDate=null; render(); } break;
       case 'open-event-from-day': S.dayListDate = null; openEvent(id); break;
       case 'open-artist': navigate('artist_detail', {artistDetailId:id}); break;
-      case 'open-new-lead': S.newLeadForm={date:'',time:'19:00'}; S.showNewLead=true; render(); break;
+      case 'open-new-lead': closeAllOverlays(); S.newLeadForm={date:'',time:'19:00'}; S.showNewLead=true; render(); break;
       case 'close-sheet': closeSheet(); break;
       case 'pick-artist': S.newLeadForm.artistId = id; render(); break;
       case 'submit-lead': doSubmitLead(); break;
@@ -1977,23 +2028,25 @@ function bindGlobal(){
       case 'reset-demo': if(confirm('Reset all demo data back to the seeded example set?')) resetDemo(); break;
       case 'export-csv': exportCSV(); break;
       case 'filter-project-type': S.projectTypeFilter = t.getAttribute('data-type'); render(); break;
-      case 'open-project': S.projectId = id; S.showDraftUpdate=false; render(); break;
+      case 'open-project': closeAllOverlays(); S.projectId = id; render(); break;
       case 'close-project': S.projectId = null; S.showDraftUpdate=false; render(); break;
       case 'overlay-close-project': if(e.target===t){ S.projectId=null; S.showDraftUpdate=false; render(); } break;
       case 'set-project-stage': doSetProjectStage(id, t.getAttribute('data-stage')); break;
       case 'toggle-task': doToggleTask(id, t.getAttribute('data-taskid')); break;
       case 'remove-task': doRemoveTask(id, t.getAttribute('data-taskid')); break;
       case 'add-task': doAddTask(id); break;
+      case 'set-project-tab': S.projectTab = t.getAttribute('data-tab'); render(); break;
+      case 'add-comment': doAddComment(id); break;
       case 'draft-update': S.showDraftUpdate = true; render(); break;
       case 'cancel-draft-update': S.showDraftUpdate = false; render(); break;
       case 'send-project-update': doSendProjectUpdate(id); break;
-      case 'open-new-project': S.newProjectForm={type:'Album'}; S.showNewProject=true; render(); break;
+      case 'open-new-project': closeAllOverlays(); S.newProjectForm={type:'Album'}; S.showNewProject=true; render(); break;
       case 'close-new-project': S.showNewProject=false; render(); break;
       case 'overlay-close-newproject': if(e.target===t){ S.showNewProject=false; render(); } break;
       case 'pick-project-artist': S.newProjectForm.artistId = id; render(); break;
       case 'pick-project-type': S.newProjectForm.type = t.getAttribute('data-type'); render(); break;
       case 'confirm-add-project': doAddProject(); break;
-      case 'open-add-artist': S.addArtistForm={}; S.showAddArtist=true; render(); break;
+      case 'open-add-artist': closeAllOverlays(); S.addArtistForm={}; S.showAddArtist=true; render(); break;
       case 'close-add-artist': S.showAddArtist=false; render(); break;
       case 'overlay-close-addartist': if(e.target===t){ S.showAddArtist=false; render(); } break;
       case 'confirm-add-artist': doAddArtist(); break;
