@@ -48,7 +48,7 @@
   --good:#3CC989; --good-wash:#173420; --good-ink:#8CEBB8;
   --warn:#F0B94A; --warn-wash:#3F2F10; --warn-ink:#F5CE7E;
   --crit:#F07A7A; --crit-wash:#3F1C1C; --crit-ink:#F5A8A8;
-  --cat-1:#3987e5; --cat-2:#2fa32f; --cat-3:#d55181; --cat-4:#c98500; --cat-5:#199e70; --cat-6:#d95926;
+  --cat-1:#3987e5; --cat-2:#2fa32f; --cat-3:#d55181; --cat-4:#c98500; --cat-5:#199e70; --cat-6:#d95926; --cat-7:#9085e9;
   --shadow-sm:0 1px 2px rgba(0,0,0,.3); --shadow-md:0 10px 28px rgba(0,0,0,.4);
 }
 :root[data-theme="light"]{
@@ -1812,17 +1812,23 @@ function doRemoveCharge(id, chargeId){
 function doUploadPrep(id, files){
   const ev = getEvent(id);
   ev.prepSheets = ev.prepSheets || [];
-  let remaining = files.length;
+  let remaining = files.length, succeeded = 0;
   Array.from(files).forEach(file=>{
     const reader = new FileReader();
-    reader.onload = ()=>{
-      ev.prepSheets.push({id:'PS-'+Date.now()+Math.random().toString(36).slice(2,6), name:file.name, dataUrl:reader.result, uploadedAt:fmtISO(new Date())});
+    const finish = ()=>{
       remaining--;
       if(remaining===0){
-        logEvent(ev,'system', files.length>1? `${files.length} prep sheets uploaded.` : `Prep sheet uploaded: ${files[0].name}.`);
-        saveEvents(); toast('Prep sheet uploaded — artist notified.', 'success'); openEvent(id);
+        saveEvents();
+        if(succeeded){ logEvent(ev,'system', `Prep sheet${succeeded===1?'':'s'} uploaded.`); toast('Prep sheet uploaded — artist notified.', 'success'); }
+        openEvent(id);
       }
     };
+    reader.onload = ()=>{
+      ev.prepSheets.push({id:'PS-'+Date.now()+Math.random().toString(36).slice(2,6), name:file.name, dataUrl:reader.result, uploadedAt:fmtISO(new Date())});
+      succeeded++;
+      finish();
+    };
+    reader.onerror = ()=>{ toast(`Could not read ${file.name}.`, 'system'); finish(); };
     reader.readAsDataURL(file);
   });
 }
@@ -1974,7 +1980,7 @@ function bindGlobal(){
     const t = e.target.closest('[data-action]');
     if(S.showEventMenu && !e.target.closest('.kebab-menu-wrap')){
       S.showEventMenu = false;
-      if(!t){ render(); return; }
+      render();
     }
     if(!t) return;
     const action = t.getAttribute('data-action');
@@ -2029,8 +2035,8 @@ function bindGlobal(){
       case 'export-csv': exportCSV(); break;
       case 'filter-project-type': S.projectTypeFilter = t.getAttribute('data-type'); render(); break;
       case 'open-project': closeAllOverlays(); S.projectId = id; render(); break;
-      case 'close-project': S.projectId = null; S.showDraftUpdate=false; render(); break;
-      case 'overlay-close-project': if(e.target===t){ S.projectId=null; S.showDraftUpdate=false; render(); } break;
+      case 'close-project': S.projectId = null; S.showDraftUpdate=false; S.projectTab='tasks'; render(); break;
+      case 'overlay-close-project': if(e.target===t){ S.projectId=null; S.showDraftUpdate=false; S.projectTab='tasks'; render(); } break;
       case 'set-project-stage': doSetProjectStage(id, t.getAttribute('data-stage')); break;
       case 'toggle-task': doToggleTask(id, t.getAttribute('data-taskid')); break;
       case 'remove-task': doRemoveTask(id, t.getAttribute('data-taskid')); break;
