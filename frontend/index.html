@@ -1,5 +1,11 @@
 <title>ASP Bookings — Mockup</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#C8952E" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="ASP Bookings" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" href="icon-192.png" />
 <style>
 /* ============ TOKENS ============ */
 :root{
@@ -137,6 +143,7 @@ input,select,textarea{font-family:inherit; font-size:inherit;}
 .card-pad{ padding:18px 20px; }
 .grid{ display:grid; gap:16px; }
 .stat-row{ grid-template-columns:repeat(4,1fr); }
+.grid-3{ grid-template-columns:repeat(3,1fr); }
 .section-head{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; margin-bottom:12px; }
 .section-head h2{ font-size:1.2rem; }
 .stack{ display:flex; flex-direction:column; }
@@ -254,6 +261,23 @@ tr.row-link:hover td{ background:var(--surface-2); }
 .sparkbar{ display:flex; align-items:flex-end; gap:2px; height:36px; }
 .sparkbar b{ flex:1; background:var(--accent); border-radius:2px 2px 0 0; opacity:.85; min-width:3px; }
 
+/* ============ KEBAB MENU ============ */
+.kebab-dropdown{ position:absolute; top:38px; right:0; background:var(--surface); border:1px solid var(--border-strong); border-radius:var(--r-md); box-shadow:var(--shadow-md); min-width:170px; z-index:10; overflow:hidden; }
+.kebab-item{ display:flex; align-items:center; gap:9px; width:100%; padding:10px 14px; font-size:13px; font-weight:600; color:var(--ink); background:transparent; border:none; text-align:left; }
+.kebab-item:hover{ background:var(--surface-2); }
+.kebab-item.danger{ color:var(--crit); }
+.kebab-item.danger:hover{ background:var(--crit-wash); }
+
+/* ============ INSTALL BANNER ============ */
+.install-banner{ position:fixed; left:0; right:0; bottom:0; z-index:75; background:var(--ink); color:var(--page); padding:12px 14px calc(12px + env(safe-area-inset-bottom)); display:flex; align-items:flex-start; gap:10px; box-shadow:0 -4px 16px rgba(0,0,0,.18); }
+.install-banner .ib-icon{ width:36px; height:36px; border-radius:9px; flex:none; background:var(--accent); display:flex; align-items:center; justify-content:center; color:#fff; font-family:var(--font-display); font-weight:700; font-size:13px; }
+.install-banner .ib-text{ flex:1; min-width:0; font-size:12px; line-height:1.4; color:var(--page); opacity:.92; }
+.install-banner .ib-text strong{ display:block; font-size:13.5px; margin-bottom:2px; color:var(--page); opacity:1; }
+.install-banner .ib-steps{ display:inline-flex; align-items:center; gap:3px; vertical-align:-2px; }
+.install-banner .btn{ flex:none; }
+.install-banner .ib-close{ flex:none; background:transparent; border:none; color:var(--page); opacity:.65; padding:2px; }
+body:has(.bottom-nav) .install-banner{ bottom:60px; }
+
 /* ============ MISC ============ */
 .empty{ text-align:center; padding:40px 20px; color:var(--ink-3); font-size:13px; }
 .chip-row{ display:flex; flex-wrap:wrap; gap:8px; }
@@ -291,15 +315,36 @@ tr.row-link:hover td{ background:var(--surface-2); }
 }
 @media (max-width: 860px){
   .rail{ display:none; }
-  .content{ padding:16px 14px 90px; }
-  .topbar{ padding:12px 16px; }
+  .content{ padding:14px 12px 84px; }
+  .topbar{ padding:10px 12px; gap:8px; }
+  .topbar h1{ font-size:1.2rem; }
   .stat-row{ grid-template-columns:repeat(2,1fr); }
+  .grid-3{ grid-template-columns:repeat(2,1fr); }
   .field-row{ grid-template-columns:1fr; }
+  .artist-pick{ grid-template-columns:repeat(2,1fr); }
   .sheet{ width:100%; }
+  .doc-body{ padding:22px 18px 30px; }
+  .doc-parties, .doc-facts, .doc-sign{ grid-template-columns:1fr; gap:14px; }
+  .doc-title{ font-size:1.4rem; }
+  .cal-grid{ gap:3px; }
+  .cal-cell{ min-height:64px; padding:4px 3px; gap:2px; }
+  .cal-date{ font-size:10.5px; }
+  .cal-evt{ font-size:9px; padding:1px 3px; }
+  .cal-dow{ font-size:9px; }
+  .stat-tile .val{ font-size:1.7rem; }
   .bottom-nav{ display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--border); padding:8px 6px calc(8px + env(safe-area-inset-bottom)); justify-content:space-around; z-index:30; }
   .bn-item{ display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; font-weight:700; color:var(--ink-3); padding:4px 4px; border-radius:8px; flex:1; min-width:0; }
   .bn-item span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .bn-item.active{ color:var(--accent); }
+}
+@media (max-width: 480px){
+  .grid-3{ grid-template-columns:1fr 1fr; }
+  .newlead-btn .btn-label{ display:none; }
+  .newlead-btn{ padding:9px 11px; }
+  .chip-name{ display:none; }
+  .user-chip{ padding:4px; }
+  .cal-cell{ min-height:52px; }
+  .cal-evt span{ max-width:34px; }
 }
 </style>
 
@@ -327,6 +372,10 @@ const ICO = {
   pin:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z"/><circle cx="12" cy="9.5" r="2.3"/></svg>',
   logout:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>',
   alert:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 9v4M12 17h.01M10.3 3.9 2.5 18a2 2 0 0 0 1.7 3h15.6a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>',
+  share:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v13"/><path d="m7 8 5-5 5 5"/><path d="M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
+  plus:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+  kebab:'<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></svg>',
+  trash:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/><path d="M10 11v6M14 11v6"/></svg>',
 };
 
 /* ============ SEED DATA ============ */
@@ -458,6 +507,9 @@ let S = {
   showAddCharge:false,
   addChargeForm:{},
   showChooser:false,
+  dayListDate:null,
+  showInstallBanner:false,
+  showEventMenu:false,
   calMonth: (()=>{const d=new Date(); d.setDate(1); return d;})(),
   calArtistFilter: [],
   finArtistFilter: 'all',
@@ -505,9 +557,43 @@ function toast(msg, type){
 }
 function logEvent(ev, type, text){ ev.log.push({ts:new Date().toISOString(), type, text}); }
 
+/* ============ INSTALL PROMPT ============ */
+let deferredInstallPrompt = null;
+function isStandalone(){ return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true; }
+function isIOS(){ return /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream; }
+function isMobileUA(){ return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent); }
+function shouldShowInstallBanner(){
+  if(isStandalone() || !isMobileUA()) return false;
+  const dismissedAt = Number(localStorage.getItem('aspInstallDismissedAt')||0);
+  if(Date.now() - dismissedAt < 14*24*60*60*1000) return false;
+  return true;
+}
+window.addEventListener('beforeinstallprompt', (e)=>{ e.preventDefault(); deferredInstallPrompt = e; render(); });
+window.addEventListener('appinstalled', ()=>{ deferredInstallPrompt=null; S.showInstallBanner=false; render(); });
+function renderInstallBanner(){
+  if(!S.showInstallBanner) return '';
+  const ios = isIOS();
+  const canPrompt = !!deferredInstallPrompt;
+  return `<div class="install-banner">
+    <span class="ib-icon">ASP</span>
+    <div class="ib-text">
+      <strong>Add ASP Bookings to your Home Screen</strong>
+      ${ios
+        ? `Tap <span class="ib-steps">${ICO.share} Share</span>, then <span class="ib-steps">${ICO.plus} Add to Home Screen</span>.`
+        : canPrompt
+          ? `Install it for one-tap access, like a real app.`
+          : `Open your browser menu and choose <strong>Add to Home Screen</strong> or <strong>Install app</strong>.`}
+    </div>
+    ${(!ios && canPrompt) ? `<button class="btn btn-sm btn-primary" data-action="install-app">Install</button>` : ''}
+    <button class="ib-close" data-action="dismiss-install" title="Dismiss">${ICO.x}</button>
+  </div>`;
+}
+
+S.showInstallBanner = shouldShowInstallBanner();
+
 function navigate(view, opts={}){ S.view=view; Object.assign(S, opts); render(); window.scrollTo({top:0}); }
-function openEvent(id){ S.eventId=id; S.showFlightForm=false; S.showContract=false; S.showAddCharge=false; render(); }
-function closeSheet(){ S.eventId=null; S.showNewLead=false; S.showFlightForm=false; S.showContract=false; S.showAddCharge=false; render(); }
+function openEvent(id){ S.eventId=id; S.showFlightForm=false; S.showContract=false; S.showAddCharge=false; S.showEventMenu=false; render(); }
+function closeSheet(){ S.eventId=null; S.showNewLead=false; S.showFlightForm=false; S.showContract=false; S.showAddCharge=false; S.showEventMenu=false; render(); }
 
 /* ============ GOOGLE CAL / ICS ============ */
 function gcalUrl(ev){
@@ -532,7 +618,7 @@ function downloadIcs(ev){
 /* ============ RENDER: SHELL ============ */
 function render(){
   const app = document.getElementById('app');
-  if(!S.user){ app.innerHTML = renderLogin(); bindGlobal(); return; }
+  if(!S.user){ app.innerHTML = renderLogin() + renderInstallBanner(); bindGlobal(); return; }
   const isAdmin = isAdminUser(S.user);
   app.innerHTML = `
     <div class="shell">
@@ -540,11 +626,11 @@ function render(){
       <div class="main">
         ${isAdmin ? '' : renderArtistTopTabs()}
         <div class="topbar">
-          <div>
-            <h1>${pageTitle()}</h1>
+          <div style="min-width:0;overflow:hidden;">
+            <h1 style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pageTitle()}</h1>
           </div>
-          <div style="display:flex;align-items:center;gap:10px;">
-            ${isAdmin ? `<button class="btn btn-primary" data-action="open-new-lead">${ICO.leads} New Lead</button>` : ''}
+          <div style="display:flex;align-items:center;gap:10px;flex:none;">
+            ${isAdmin ? `<button class="btn btn-primary newlead-btn" data-action="open-new-lead">${ICO.leads}<span class="btn-label">New Lead</span></button>` : ''}
             ${renderUserChip()}
           </div>
         </div>
@@ -553,9 +639,30 @@ function render(){
     </div>
     ${renderBottomNav(isAdmin)}
     ${S.showNewLead ? renderNewLeadModal() : ''}
+    ${S.dayListDate ? renderDayList() : ''}
     ${S.eventId ? renderEventSheet(getEvent(S.eventId)) : ''}
+    ${renderInstallBanner()}
   `;
   bindGlobal();
+}
+
+function renderDayList(){
+  const iso = S.dayListDate;
+  const isAdmin = isAdminUser(S.user);
+  const evs = S.events.filter(e=>e.date===iso && (isAdmin || e.artistId===S.user)).sort((a,b)=>a.time.localeCompare(b.time));
+  return `<div class="overlay center" data-action="dayoverlay-close">
+    <div class="modal" data-stop style="width:400px;">
+      <div class="sheet-head"><h2 style="font-size:1.1rem;">${fmtDate(iso)}</h2><button class="icon-btn" data-action="close-daylist">${ICO.x}</button></div>
+      <div class="sheet-body" style="padding-top:8px;gap:2px;">
+        ${evs.length? evs.map(e=>{const a=artistById(e.artistId); const sm=statusMeta(e);
+          return `<button class="chooser-row" data-action="open-event-from-day" data-id="${e.id}">
+            <span class="avatar" data-slot="${a.slot}" style="width:32px;height:32px;font-size:11px;">${a.initials}</span>
+            <span style="flex:1;min-width:0;"><strong>${fmtTime(e.time)} — ${isAdmin?esc(a.name):esc(e.clientName)}</strong><span class="chooser-email">${isAdmin?esc(e.clientName):esc(e.venue)} &middot; ${esc(e.type)}</span></span>
+            <span class="pill ${sm.cls}">${sm.label}</span>
+          </button>`;}).join('') : `<p style="color:var(--ink-3);font-size:13px;margin:0;">Nothing on this date.</p>`}
+      </div>
+    </div>
+  </div>`;
 }
 
 function pageTitle(){
@@ -571,11 +678,11 @@ function pageTitle(){
 function renderUserChip(){
   if(isAdminUser(S.user)){
     const u = adminById(S.user);
-    return `<div class="user-chip"><span class="avatar" data-slot="0" style="background:var(--ink);width:22px;height:22px;font-size:10px;">${u.initials}</span> ${esc(u.name)}
+    return `<div class="user-chip"><span class="avatar" data-slot="0" style="background:var(--ink);width:22px;height:22px;font-size:10px;">${u.initials}</span> <span class="chip-name">${esc(u.name)}</span>
       <button class="icon-btn" data-action="logout" title="Switch user">${ICO.logout}</button></div>`;
   }
   const a = artistById(S.user);
-  return `<div class="user-chip"><span class="avatar" data-slot="${a.slot}" style="width:22px;height:22px;font-size:10px;">${a.initials}</span> ${esc(a.name)}
+  return `<div class="user-chip"><span class="avatar" data-slot="${a.slot}" style="width:22px;height:22px;font-size:10px;">${a.initials}</span> <span class="chip-name">${esc(a.name)}</span>
     <button class="icon-btn" data-action="logout" title="Switch user">${ICO.logout}</button></div>`;
 }
 
@@ -742,8 +849,8 @@ function renderCalendarPage(events, opts={}){
         const max = opts.compact?2:3;
         return `<div class="cal-cell ${c.iso===todayIso?'today':''}">
           <span class="cal-date">${c.d}</span>
-          ${evs.slice(0,max).map(e=>{const a=artistById(e.artistId); return `<div class="cal-evt" data-action="open-event" data-id="${e.id}"><span class="dot" data-slot="${a.slot}"></span><span>${fmtTime(e.time).replace(':00','')} ${esc(opts.compact? a.name.split(' ')[0] : e.clientName.split(' ')[0])}</span></div>`;}).join('')}
-          ${evs.length>max? `<span class="cal-more">+${evs.length-max} more</span>`:''}
+          ${evs.slice(0,max).map(e=>{const a=artistById(e.artistId); const label = opts.singleArtist? e.clientName.split(' ')[0] : a.name.split(' ')[0]; return `<div class="cal-evt" data-action="open-event" data-id="${e.id}"><span class="dot" data-slot="${a.slot}"></span><span>${fmtTime(e.time).replace(':00','')} ${esc(label)}</span></div>`;}).join('')}
+          ${evs.length>max? `<span class="cal-more" data-action="open-day" data-date="${c.iso}">+${evs.length-max} more</span>`:''}
         </div>`;
       }).join('')}
     </div>
@@ -784,7 +891,7 @@ function renderLeadsPage(){
 
 /* ============ ARTISTS ROSTER ============ */
 function renderArtistsPage(){
-  return `<div class="grid" style="grid-template-columns:repeat(3,1fr);">
+  return `<div class="grid grid-3">
     ${ARTISTS.map(a=>{
       const evs = eventsFor(a.id);
       const upcoming = evs.filter(e=>!isPast(e.date) && ['booked','paid'].includes(e.status)).length;
@@ -810,7 +917,7 @@ function renderArtistDetailPage(artistId){
       <span class="avatar" data-slot="${a.slot}" style="width:52px;height:52px;font-size:17px;">${a.initials}</span>
       <div><h2 style="font-size:1.5rem;">${esc(a.name)}</h2><span class="u-label">Viewing as Management</span></div>
     </div>
-    <div class="card card-pad" style="margin-bottom:20px;">${renderCalendarPage(evs, {noLegend:true})}</div>
+    <div class="card card-pad" style="margin-bottom:20px;">${renderCalendarPage(evs, {noLegend:true, singleArtist:true})}</div>
     <div class="section-head"><h2>Upcoming (${upcoming.length})</h2></div>
     ${renderEventTable(upcoming, {})}
   `;
@@ -856,7 +963,7 @@ function renderFinancialsPage(){
   </div>
 
   <div class="section-head"><h2>Per-Artist Trend</h2></div>
-  <div class="grid" style="grid-template-columns:repeat(3,1fr);margin-bottom:22px;">
+  <div class="grid grid-3" style="margin-bottom:22px;">
     ${ARTISTS.map(a=>{
       const ae = S.events.filter(e=>e.artistId===a.id && ['booked','paid'].includes(e.status));
       const total = ae.reduce((s,e)=>s+e.price,0);
@@ -900,7 +1007,7 @@ function renderArtistDashboard(artistId){
     ${statTile('YTD Payout', money(ytd), 'Received via Zelle')}
     ${statTile('Flights Pending', evs.filter(e=>e.flightNeeded&&!e.flightBooked&&!isPast(e.date)).length, 'Awaiting bookkeeping')}
   </div>
-  <div class="card card-pad">${renderCalendarPage(evs, {noLegend:true})}</div>
+  <div class="card card-pad">${renderCalendarPage(evs, {noLegend:true, singleArtist:true})}</div>
   `;
 }
 function renderArtistGigs(artistId){
@@ -977,7 +1084,14 @@ function renderEventSheet(ev){
           <div><strong style="font-family:var(--font-display);font-size:1.2rem;display:block;">${esc(a.name)}</strong>
           <span class="pill ${sm.cls}">${sm.label}</span></div>
         </div>
-        <button class="icon-btn" data-action="close-sheet">${ICO.x}</button>
+        <div class="kebab-menu-wrap" style="display:flex;gap:4px;align-items:center;position:relative;">
+          <button class="icon-btn" data-action="toggle-event-menu">${ICO.kebab}</button>
+          ${S.showEventMenu? `<div class="kebab-dropdown">
+            <button class="kebab-item" data-action="share-event" data-id="${ev.id}">${ICO.share} Share</button>
+            ${isAdmin? `<button class="kebab-item danger" data-action="delete-event" data-id="${ev.id}">${ICO.trash} Delete ${ev.status==='lead'?'Lead':'Gig'}</button>`:''}
+          </div>`:''}
+          <button class="icon-btn" data-action="close-sheet">${ICO.x}</button>
+        </div>
       </div>
       <div class="sheet-body">
 
@@ -1290,6 +1404,27 @@ function doRemovePrep(id, prepId){
   ev.prepSheets = (ev.prepSheets||[]).filter(f=>f.id!==prepId);
   saveEvents(); openEvent(id);
 }
+function doShareEvent(id){
+  S.showEventMenu = false;
+  const ev = getEvent(id); const a = artistById(ev.artistId);
+  const text = `${a.name} — ${ev.type}\n${fmtDate(ev.date)} · ${fmtTime(ev.time)}\n${ev.venue}, ${ev.city}, ${ev.state}`;
+  if(navigator.share){
+    navigator.share({title:`${a.name} — ${ev.type}`, text}).catch(()=>{});
+  } else if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>toast('Gig details copied to clipboard.', 'system')).catch(()=>toast('Could not copy — try again.', 'system'));
+  } else {
+    toast('Sharing not supported in this browser.', 'system');
+  }
+  render();
+}
+function doDeleteEvent(id){
+  const ev = getEvent(id);
+  if(!confirm(`Delete this ${ev.status==='lead'?'lead':'gig'} for ${ev.clientName} (${artistById(ev.artistId).name})? This can't be undone.`)) return;
+  S.events = S.events.filter(e=>e.id!==id);
+  saveEvents();
+  toast('Deleted.', 'system');
+  closeSheet();
+}
 function doSubmitLead(){
   const f = S.newLeadForm;
   if(!f.artistId || !f.clientName || !f.date || !f.venue || !f.city || !f.price){ toast('Please fill in artist, client, date, venue, city and price.', 'system'); return; }
@@ -1336,6 +1471,10 @@ function bindGlobal(){
   });
   document.body.onclick = (e)=>{
     const t = e.target.closest('[data-action]');
+    if(S.showEventMenu && !e.target.closest('.kebab-menu-wrap')){
+      S.showEventMenu = false;
+      if(!t){ render(); return; }
+    }
     if(!t) return;
     const action = t.getAttribute('data-action');
     const id = t.getAttribute('data-id');
@@ -1348,6 +1487,10 @@ function bindGlobal(){
       case 'hide-chooser': S.showChooser=false; render(); break;
       case 'nav': navigate(t.getAttribute('data-view')); break;
       case 'open-event': openEvent(id); break;
+      case 'open-day': S.dayListDate = t.getAttribute('data-date'); render(); break;
+      case 'close-daylist': S.dayListDate = null; render(); break;
+      case 'dayoverlay-close': if(e.target===t){ S.dayListDate=null; render(); } break;
+      case 'open-event-from-day': S.dayListDate = null; openEvent(id); break;
       case 'open-artist': navigate('artist_detail', {artistDetailId:id}); break;
       case 'open-new-lead': S.newLeadForm={date:'',time:'19:00'}; S.showNewLead=true; render(); break;
       case 'close-sheet': closeSheet(); break;
@@ -1382,6 +1525,11 @@ function bindGlobal(){
       case 'gcal': window.open(gcalUrl(getEvent(id)), '_blank'); break;
       case 'ics': downloadIcs(getEvent(id)); break;
       case 'reset-demo': if(confirm('Reset all demo data back to the seeded example set?')) resetDemo(); break;
+      case 'toggle-event-menu': S.showEventMenu = !S.showEventMenu; render(); break;
+      case 'share-event': doShareEvent(id); break;
+      case 'delete-event': doDeleteEvent(id); break;
+      case 'install-app': if(deferredInstallPrompt){ deferredInstallPrompt.prompt(); deferredInstallPrompt.userChoice.finally(()=>{ deferredInstallPrompt=null; }); } break;
+      case 'dismiss-install': localStorage.setItem('aspInstallDismissedAt', String(Date.now())); S.showInstallBanner=false; render(); break;
     }
   };
   document.querySelectorAll('[data-action="set-reminder-interval"]').forEach(sel=>{
@@ -1396,4 +1544,7 @@ function bindGlobal(){
 }
 
 render();
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
+}
 </script>
