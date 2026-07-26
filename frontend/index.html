@@ -348,6 +348,7 @@ const artistById = (id)=>ARTISTS.find(a=>a.id===id);
 const ADMIN_USERS = [
   {id:'admin_bookings', name:'ASP Office — Bookings', email:'bookings@aspmanagement.com', initials:'AB'},
   {id:'admin_bookkeeping', name:'ASP Office — Bookkeeping', email:'bookkeeping@aspmanagement.com', initials:'AK'},
+  {id:'admin_ceo', name:'ASP Office — CEO', email:'ceo@aspmanagement.com', initials:'CEO'},
 ];
 const isAdminUser = (id)=>ADMIN_USERS.some(u=>u.id===id);
 const adminById = (id)=>ADMIN_USERS.find(u=>u.id===id);
