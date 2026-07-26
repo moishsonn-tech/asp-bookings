@@ -536,6 +536,35 @@ function fmtTime(t){ const [h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'
 function daysUntil(iso){ const today=new Date(); today.setHours(0,0,0,0); const d=new Date(iso+'T00:00:00'); return Math.round((d-today)/86400000); }
 function isPast(iso){ return daysUntil(iso) < 0; }
 function fullLocation(ev){ return `${ev.venue}, ${ev.city}, ${ev.state}`; }
+const US_STATES = new Set(['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC']);
+function isInternational(ev){ return !US_STATES.has((ev.state||'').trim().toUpperCase()); }
+function eventTravelDates(ev){
+  const dates = new Set([ev.date]);
+  if(ev.flight){
+    if(ev.flight.depart) dates.add(ev.flight.depart.slice(0,10));
+    if(ev.flight.arrive) dates.add(ev.flight.arrive.slice(0,10));
+  }
+  return dates;
+}
+function findConflicts(ev){
+  const myDates = eventTravelDates(ev);
+  return S.events.filter(e=>{
+    if(e.id===ev.id || e.artistId!==ev.artistId) return false;
+    const otherDates = eventTravelDates(e);
+    for(const d of myDates) if(otherDates.has(d)) return true;
+    return false;
+  });
+}
+function allConflictPairs(){
+  const seen = new Set(); const pairs = [];
+  S.events.forEach(ev=>{
+    findConflicts(ev).forEach(other=>{
+      const key = [ev.id, other.id].sort().join('|');
+      if(!seen.has(key)){ seen.add(key); pairs.push([ev, other]); }
+    });
+  });
+  return pairs;
+}
 function statusMeta(ev){
   const map = {
     lead:      {label:'New Lead', cls:'pill-neutral'},
@@ -613,6 +642,22 @@ function downloadIcs(ev){
   const ics = ['BEGIN:VCALENDAR','VERSION:2.0','BEGIN:VEVENT',`UID:${ev.id}@asp-bookings`,`DTSTART:${start}`,`DTEND:${end}`,`SUMMARY:${artist.name} — ${ev.type}`,`LOCATION:${fullLocation(ev)}`,`DESCRIPTION:Client ${ev.clientName}. Booked via ASP.`,'END:VEVENT','END:VCALENDAR'].join('\r\n');
   const blob = new Blob([ics], {type:'text/calendar'});
   const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `${artist.name.replace(/\s/g,'_')}_${ev.date}.ics`; a.click();
+}
+
+function exportCSV(){
+  const filt = S.finArtistFilter==='all' ? S.events : S.events.filter(e=>e.artistId===S.finArtistFilter);
+  const rows = filt.filter(e=>['booked','paid'].includes(e.status));
+  const cols = ['Artist','Client','Date','Type','Venue','City','State','Price','Charges','Commission','Payout','Status'];
+  const csvEsc = (v)=>{ const s=String(v??''); return /[",\n]/.test(s) ? `"${s.replace(/"/g,'""')}"` : s; };
+  const lines = [cols.join(',')];
+  rows.sort((a,b)=>a.date.localeCompare(b.date)).forEach(e=>{
+    const a = artistById(e.artistId); const sm = statusMeta(e);
+    lines.push([a.name, e.clientName, e.date, e.type, e.venue, e.city, e.state, e.price, chargesTotal(e), e.commission, e.balance+chargesTotal(e), sm.label].map(csvEsc).join(','));
+  });
+  const blob = new Blob([lines.join('\r\n')], {type:'text/csv'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `asp-bookings-${S.finArtistFilter}-${fmtISO(new Date())}.csv`; a.click();
+  toast('CSV exported.', 'system');
 }
 
 /* ============ RENDER: SHELL ============ */
@@ -778,6 +823,8 @@ function renderMgmtDashboard(){
   const upcoming30 = S.events.filter(e=>!isPast(e.date) && daysUntil(e.date)<=30 && ['booked','paid'].includes(e.status));
   const mtdRevenue = S.events.filter(e=>e.depositReceived && sameMonth(e.depositReceivedDate)).reduce((s,e)=>s+e.commission,0);
   const flightsToBook = S.events.filter(e=>e.flightNeeded && !e.flightBooked && ['booked','paid'].includes(e.status) && !isPast(e.date));
+  const conflictPairs = allConflictPairs().filter(([a,b])=>!isPast(a.date)||!isPast(b.date));
+  const intlTrips = S.events.filter(e=>isInternational(e) && !isPast(e.date) && ['booked','paid'].includes(e.status)).sort((a,b)=>a.date.localeCompare(b.date));
 
   return `
   <div class="grid stat-row" style="margin-bottom:20px;">
@@ -786,6 +833,28 @@ function renderMgmtDashboard(){
     ${statTile('Upcoming Gigs · 30d', upcoming30.length, 'Booked or paid, next 30 days', 'calendar')}
     ${statTile('MTD ASP Revenue', money(mtdRevenue), 'Booking fees received this month', 'financials')}
   </div>
+
+  ${conflictPairs.length ? `
+  <div class="card card-pad" style="margin-bottom:20px;border-color:var(--crit);background:var(--crit-wash);">
+    <div style="display:flex;align-items:center;gap:8px;color:var(--crit-ink);font-weight:700;font-size:13px;">${ICO.alert} Scheduling conflicts (${conflictPairs.length})</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;">
+      ${conflictPairs.map(([x,y])=>{const ax=artistById(x.artistId);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--crit-ink);cursor:pointer;" data-action="open-event" data-id="${x.id}">
+        <span><strong>${esc(ax.name)}</strong> — ${fmtDateShort(x.date)} (${esc(x.clientName)}) overlaps ${fmtDateShort(y.date)} (${esc(y.clientName)})</span>
+        <span style="text-decoration:underline;">Resolve</span></div>`;}).join('')}
+    </div>
+  </div>` : ''}
+
+  ${intlTrips.length ? `
+  <div class="card card-pad" style="margin-bottom:20px;border-color:var(--accent);background:var(--accent-wash);">
+    <div style="display:flex;align-items:center;gap:8px;color:var(--accent-ink);font-weight:700;font-size:13px;">${ICO.plane} International trip opportunities (${intlTrips.length})</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;">
+      ${intlTrips.map(e=>{const ae=artistById(e.artistId);
+        return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--accent-ink);cursor:pointer;" data-action="open-event" data-id="${e.id}">
+        <span><strong>${esc(ae.name)}</strong> — ${esc(e.city)}, ${esc(e.state)}, ${fmtDateShort(e.date)}</span>
+        <span style="text-decoration:underline;">View</span></div>`;}).join('')}
+    </div>
+  </div>` : ''}
 
   ${flightsToBook.length ? `
   <div class="card card-pad" style="margin-bottom:20px;border-color:var(--warn);background:var(--warn-wash);">
@@ -981,7 +1050,7 @@ function renderFinancialsPage(){
     }).join('')}
   </div>
 
-  <div class="section-head"><h2>All Jobs (${booked.length})</h2></div>
+  <div class="section-head"><h2>All Jobs (${booked.length})</h2><button class="btn btn-sm" data-action="export-csv">${ICO.leads} Export CSV</button></div>
   <div class="card u-scroll-x"><table>
     <thead><tr><th>Artist</th><th>Client</th><th>Date</th><th>Price</th><th>Commission</th><th>Payout</th><th>Status</th></tr></thead>
     <tbody>${booked.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{const a=artistById(e.artistId); const sm=statusMeta(e);
@@ -1110,6 +1179,11 @@ function renderEventSheet(ev){
 
         <button class="btn" data-action="view-contract" data-id="${ev.id}" style="justify-content:flex-start;">${ICO.leads} ${ev.status==='lead'?'Preview Draft Contract':'View Contract'}</button>
 
+        ${renderConflictWarning(ev)}
+        ${isInternational(ev) && !isPast(ev.date) ? `<div class="card card-pad" style="border-color:var(--accent);background:var(--accent-wash);">
+          <div style="display:flex;align-items:center;gap:8px;color:var(--accent-ink);font-weight:700;font-size:13px;">${ICO.plane} ${esc(a.name)} will be in ${esc(ev.city)}, ${esc(ev.state)}</div>
+          ${isAdmin? `<p style="font-size:12.5px;color:var(--accent-ink);margin:6px 0 0;">Worth reaching out to contacts nearby — a good window to line up more bookings while ${esc(a.name.split(' ')[0])} is already out there.</p>` : `<p style="font-size:12.5px;color:var(--accent-ink);margin:6px 0 0;">Let the office know if you have contacts nearby — good window to add more bookings on this trip.</p>`}
+        </div>` : ''}
         ${renderFlightBlock(ev, isAdmin)}
         ${renderLedger(ev, isAdmin)}
         ${renderPrepSheets(ev, isAdmin)}
@@ -1135,6 +1209,19 @@ function renderEventSheet(ev){
   </div>`;
 }
 
+function renderConflictWarning(ev){
+  const conflicts = findConflicts(ev);
+  if(!conflicts.length) return '';
+  return `<div class="card card-pad" style="border-color:var(--crit);background:var(--crit-wash);">
+    <div style="display:flex;align-items:center;gap:8px;color:var(--crit-ink);font-weight:700;font-size:13px;">${ICO.alert} Scheduling conflict</div>
+    <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
+      ${conflicts.map(c=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--crit-ink);cursor:pointer;" data-action="open-event" data-id="${c.id}">
+        <span>${fmtDateShort(c.date)} — ${esc(c.clientName)} (${esc(c.type)})${c.date!==ev.date?' · overlaps via flight travel':''}</span>
+        <span style="text-decoration:underline;">View</span>
+      </div>`).join('')}
+    </div>
+  </div>`;
+}
 function renderFlightBlock(ev, isAdmin){
   if(!ev.flightNeeded) return isAdmin ? `<button class="btn btn-ghost" data-action="toggle-flight" data-id="${ev.id}" style="justify-content:flex-start;color:var(--ink-2);">${ICO.plane} Mark flight needed</button>` : '';
   if(!ev.flightBooked){
@@ -1440,6 +1527,7 @@ function doSubmitLead(){
   };
   S.events.unshift(ev); saveEvents();
   toast(`Lead added — penciled in on ${artistById(f.artistId).name}'s calendar.`, 'success');
+  if(findConflicts(ev).length) toast(`⚠ Scheduling conflict — ${artistById(f.artistId).name} already has something this date.`, 'system');
   S.showNewLead=false; S.newLeadForm={}; openEvent(ev.id);
 }
 
@@ -1525,6 +1613,7 @@ function bindGlobal(){
       case 'gcal': window.open(gcalUrl(getEvent(id)), '_blank'); break;
       case 'ics': downloadIcs(getEvent(id)); break;
       case 'reset-demo': if(confirm('Reset all demo data back to the seeded example set?')) resetDemo(); break;
+      case 'export-csv': exportCSV(); break;
       case 'toggle-event-menu': S.showEventMenu = !S.showEventMenu; render(); break;
       case 'share-event': doShareEvent(id); break;
       case 'delete-event': doDeleteEvent(id); break;
