@@ -349,7 +349,7 @@ body:has(.bottom-nav) .install-banner{ bottom:60px; }
   .bn-item{ display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; font-weight:700; color:var(--ink-3); padding:4px 4px; border-radius:8px; flex:1; min-width:0; }
   .bn-item span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .bn-item.active{ color:var(--accent); }
-  .bn-item[data-view="projects"], .bn-item[data-view="a_projects"]{ display:none; }
+  .bn-item[data-view="projects"], .bn-item[data-view="a_projects"], .bn-item[data-view="pricing"]{ display:none; }
 }
 @media (max-width: 480px){
   .grid-3{ grid-template-columns:1fr 1fr; }
@@ -395,6 +395,7 @@ const ICO = {
   trash:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/><path d="M10 11v6M14 11v6"/></svg>',
   kanban:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="5" height="16" rx="1.5"/><rect x="9.5" y="4" width="5" height="10" rx="1.5"/><rect x="16" y="4" width="5" height="13" rx="1.5"/></svg>',
   sparkle:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v4M12 17v4M3 12h4M17 12h4M6 6l2.5 2.5M15.5 15.5 18 18M18 6l-2.5 2.5M8.5 15.5 6 18"/></svg>',
+  tag:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12.5 3H5a2 2 0 0 0-2 2v7.5a2 2 0 0 0 .586 1.414l9 9a2 2 0 0 0 2.828 0l7.5-7.5a2 2 0 0 0 0-2.828l-9-9A2 2 0 0 0 12.5 3Z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>',
 };
 
 /* ============ SEED DATA ============ */
@@ -421,6 +422,32 @@ function saveArtists(){ try{ localStorage.setItem(ARTISTS_LS_KEY, JSON.stringify
     saved.forEach(a=>{ if(canonical[a.id]) a.slot = canonical[a.id]; });
     ARTISTS = saved; saveArtists();
   } else saveArtists();
+}
+
+/* ============ PRICING ============ */
+const PRICING_LS_KEY = 'asp_mock_pricing_v1';
+const OVERTIME_MULTIPLIER = 1.5; // time-and-a-half, prorated to the minute past included hours
+function seedPricing(){
+  const p = {};
+  ARTISTS.forEach(a=>{
+    p[a.id] = {};
+    EVENT_TYPES.forEach((type,i)=>{
+      p[a.id][type] = { hourlyRate: 300 + a.slot*35 + i*15, includedHours: 2 };
+    });
+  });
+  return p;
+}
+function loadPricing(){ try{ const raw = localStorage.getItem(PRICING_LS_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
+function savePricing(){ try{ localStorage.setItem(PRICING_LS_KEY, JSON.stringify(PRICING)); }catch(e){} }
+let PRICING = loadPricing();
+if(!PRICING) PRICING = seedPricing();
+ARTISTS.forEach(a=>{ if(!PRICING[a.id]) PRICING[a.id] = {}; EVENT_TYPES.forEach((type,i)=>{ if(!PRICING[a.id][type]) PRICING[a.id][type] = { hourlyRate: 300 + a.slot*35 + i*15, includedHours: 2 }; }); });
+savePricing();
+function getPricing(artistId, type){ return (PRICING[artistId] && PRICING[artistId][type]) || { hourlyRate:0, includedHours:2 }; }
+function setPricing(artistId, type, patch){
+  PRICING[artistId] = PRICING[artistId] || {};
+  PRICING[artistId][type] = Object.assign({hourlyRate:0,includedHours:2}, PRICING[artistId][type], patch);
+  savePricing();
 }
 
 /* ============ PROJECTS ============ */
@@ -629,6 +656,7 @@ let S = {
   addArtistForm:{},
   newArtistWelcome:null,
   projectTypeFilter:'Album',
+  pricingArtist: null,
   projectId:null,
   showNewProject:false,
   newProjectForm:{},
@@ -857,7 +885,7 @@ function renderDayList(){
 function pageTitle(){
   if(S.eventId || S.showNewLead) return document.querySelector('.topbar h1')?.textContent || '';
   const t = {
-    dashboard:'Dashboard', calendar:'Calendar', leads:'Open Leads', artists:'Artists', financials:'Financials', projects:'Projects',
+    dashboard:'Dashboard', calendar:'Calendar', leads:'Open Leads', artists:'Artists', financials:'Financials', projects:'Projects', pricing:'Pricing',
     artist_detail: artistById(S.artistDetailId)?.name || '',
     a_dashboard:'My Dashboard', a_gigs:'My Gigs', a_projects:'My Projects',
   };
@@ -877,7 +905,7 @@ function renderUserChip(){
 
 const MGMT_NAV_ITEMS = [
   ['dashboard','Dashboard',ICO.dash], ['calendar','Calendar',ICO.cal], ['leads','Leads',ICO.leads],
-  ['artists','Artists',ICO.artists], ['projects','Projects',ICO.kanban], ['financials','Financials',ICO.money],
+  ['artists','Artists',ICO.artists], ['projects','Projects',ICO.kanban], ['pricing','Pricing',ICO.tag], ['financials','Financials',ICO.money],
 ];
 const ARTIST_NAV_ITEMS = [
   ['a_dashboard','Dashboard',ICO.dash], ['a_gigs','My Gigs',ICO.leads], ['a_projects','Projects',ICO.kanban],
@@ -922,6 +950,7 @@ function renderView(){
     if(S.view==='artist_detail') return renderArtistDetailPage(S.artistDetailId);
     if(S.view==='financials') return renderFinancialsPage();
     if(S.view==='projects') return renderProjectsBoard();
+    if(S.view==='pricing') return renderPricingPage();
   } else {
     if(S.view==='a_dashboard') return renderArtistDashboard(S.user);
     if(S.view==='a_gigs') return renderArtistGigs(S.user);
@@ -1145,6 +1174,33 @@ function renderArtistDetailPage(artistId){
 }
 
 /* ============ FINANCIALS ============ */
+function renderPricingPage(){
+  const artistId = S.pricingArtist || ARTISTS[0].id;
+  const artist = artistById(artistId);
+  return `
+  <p style="font-size:12.5px;color:var(--ink-3);margin:0 0 16px;max-width:640px;">Standard hourly rates by artist and event type — the reference bookkeeping quotes from before negotiating a final flat price. Overtime is always time-and-a-half (1.5×), prorated to the minute past the included hours, not a separately set rate.</p>
+  <div class="chip-row" style="margin-bottom:16px;">
+    ${ARTISTS.map(a=>`<button class="filter-chip ${artistId===a.id?'sel':''}" data-action="pricing-artist" data-id="${a.id}"><span class="dot" data-slot="${a.slot}"></span>${a.name.split(' ')[0]}</button>`).join('')}
+  </div>
+  <div class="card u-scroll-x">
+    <table>
+      <thead><tr><th>Event Type</th><th>Hourly Rate</th><th>Included Hours</th><th>Overtime (1.5×/hr, prorated)</th></tr></thead>
+      <tbody>
+        ${EVENT_TYPES.map(type=>{
+          const p = getPricing(artistId, type);
+          return `<tr>
+            <td>${esc(type)}</td>
+            <td><span class="u-mono" style="margin-right:2px;">$</span><input type="number" min="0" step="25" value="${p.hourlyRate}" data-action="set-hourly-rate" data-artist="${artistId}" data-type="${esc(type)}" style="width:90px;padding:6px 8px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-family:var(--font-mono);"/></td>
+            <td><input type="number" min="0" step="0.5" value="${p.includedHours}" data-action="set-included-hours" data-artist="${artistId}" data-type="${esc(type)}" style="width:70px;padding:6px 8px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-family:var(--font-mono);"/></td>
+            <td class="u-mono">${money(p.hourlyRate*OVERTIME_MULTIPLIER)}/hr</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  </div>
+  <p style="font-size:11px;color:var(--ink-3);margin-top:10px;">Editing ${esc(artist.name)}'s rates — changes save automatically.</p>
+  `;
+}
 function renderFinancialsPage(){
   const filt = S.finArtistFilter==='all' ? S.events : S.events.filter(e=>e.artistId===S.finArtistFilter);
   const booked = filt.filter(e=>['booked','paid'].includes(e.status));
@@ -2141,6 +2197,7 @@ function bindGlobal(){
         render(); break;
       }
       case 'fin-filter': S.finArtistFilter = id; render(); break;
+      case 'pricing-artist': S.pricingArtist = id; render(); break;
       case 'send-contract': doSendContract(id); break;
       case 'mark-deposit': doMarkDeposit(id); break;
       case 'toggle-flight': doToggleFlight(id); break;
@@ -2215,6 +2272,12 @@ function bindGlobal(){
   });
   document.querySelectorAll('[data-action="set-project-due"]').forEach(inp=>{
     inp.addEventListener('change', ()=>{ const p=getProject(inp.getAttribute('data-id')); p.dueDate = inp.value||null; saveProjects(); toast('Target date updated.', 'system'); });
+  });
+  document.querySelectorAll('[data-action="set-hourly-rate"]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ setPricing(inp.getAttribute('data-artist'), inp.getAttribute('data-type'), {hourlyRate:Number(inp.value)||0}); toast('Rate updated.', 'system'); render(); });
+  });
+  document.querySelectorAll('[data-action="set-included-hours"]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ setPricing(inp.getAttribute('data-artist'), inp.getAttribute('data-type'), {includedHours:Number(inp.value)||0}); toast('Rate updated.', 'system'); render(); });
   });
   document.querySelectorAll('.board-card[draggable]').forEach(card=>{
     card.addEventListener('dragstart', ()=>{ S.dragProjectId = card.getAttribute('data-project-id'); });
