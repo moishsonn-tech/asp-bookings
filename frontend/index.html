@@ -332,6 +332,13 @@ body:has(.bottom-nav) .install-banner{ bottom:60px; }
   .topbar{ padding:10px 12px; gap:8px; }
   .topbar h1{ font-size:1.2rem; }
   .stat-row{ grid-template-columns:repeat(2,1fr); }
+  .table-cards{ overflow-x:visible; }
+  .table-cards table, .table-cards tbody, .table-cards tr, .table-cards td{ display:block; width:100%; }
+  .table-cards thead{ display:none; }
+  .table-cards tr{ padding:12px 14px; border-bottom:1px solid var(--border); }
+  .table-cards tr:last-child{ border-bottom:none; }
+  .table-cards td{ display:flex; align-items:center; justify-content:space-between; gap:12px; padding:4px 0; border-bottom:none; }
+  .table-cards td::before{ content:attr(data-label); font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); font-weight:700; flex:none; }
   .grid-3{ grid-template-columns:repeat(2,1fr); }
   .field-row{ grid-template-columns:1fr; }
   .artist-pick{ grid-template-columns:repeat(2,1fr); }
@@ -353,8 +360,7 @@ body:has(.bottom-nav) .install-banner{ bottom:60px; }
 }
 @media (max-width: 480px){
   .grid-3{ grid-template-columns:1fr 1fr; }
-  .newlead-btn .btn-label{ display:none; }
-  .newlead-btn{ padding:9px 11px; }
+  .newlead-btn{ padding:9px 12px; flex:none; }
   .chip-name{ display:none; }
   .user-chip{ padding:4px; }
   .cal-cell{ min-height:52px; }
@@ -1111,7 +1117,7 @@ function renderCalendarPage(events, opts={}){
 /* ============ LEADS TABLE ============ */
 function renderEventTable(events, opts={}){
   if(!events.length) return `<div class="card empty">Nothing here yet.</div>`;
-  return `<div class="card u-scroll-x"><table>
+  return `<div class="card u-scroll-x table-cards"><table>
     <thead><tr>
       ${opts.showArtist?'<th>Artist</th>':''}
       <th>Client</th><th>Type</th><th>Date</th><th>Location</th><th>Price</th><th>Status</th>
@@ -1120,10 +1126,10 @@ function renderEventTable(events, opts={}){
       ${events.map(e=>{
         const a = artistById(e.artistId); const sm = statusMeta(e);
         return `<tr class="row-link" data-action="open-event" data-id="${e.id}">
-          ${opts.showArtist?`<td><span style="display:flex;align-items:center;gap:7px;"><span class="avatar" data-slot="${a.slot}" style="width:22px;height:22px;font-size:9px;">${a.initials}</span>${esc(a.name)}</span></td>`:''}
-          <td>${esc(e.clientName)}</td><td>${esc(e.type)}</td><td class="u-mono">${fmtDateShort(e.date)}</td>
-          <td>${esc(e.venue)||'—'}</td><td class="u-mono">${money(e.price)}</td>
-          <td><span class="pill ${sm.cls}">${sm.label}</span></td>
+          ${opts.showArtist?`<td data-label="Artist"><span style="display:flex;align-items:center;gap:7px;"><span class="avatar" data-slot="${a.slot}" style="width:22px;height:22px;font-size:9px;">${a.initials}</span>${esc(a.name)}</span></td>`:''}
+          <td data-label="Client">${esc(e.clientName)}</td><td data-label="Type">${esc(e.type)}</td><td data-label="Date" class="u-mono">${fmtDateShort(e.date)}</td>
+          <td data-label="Location">${esc(e.venue)||'—'}</td><td data-label="Price" class="u-mono">${money(e.price)}</td>
+          <td data-label="Status"><span class="pill ${sm.cls}">${sm.label}</span></td>
         </tr>`;
       }).join('')}
     </tbody></table></div>`;
@@ -1260,13 +1266,13 @@ function renderFinancialsPage(){
   </div>
 
   <div class="section-head"><h2>All Jobs (${booked.length})</h2><button class="btn btn-sm" data-action="export-csv">${ICO.leads} Export CSV</button></div>
-  <div class="card u-scroll-x"><table>
+  <div class="card u-scroll-x table-cards"><table>
     <thead><tr><th>Artist</th><th>Client</th><th>Date</th><th>Price</th><th>Commission</th><th>Payout</th><th>Status</th></tr></thead>
     <tbody>${booked.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{const a=artistById(e.artistId); const sm=statusMeta(e);
       return `<tr class="row-link" data-action="open-event" data-id="${e.id}">
-        <td>${esc(a.name)}</td><td>${esc(e.clientName)}</td><td class="u-mono">${fmtDateShort(e.date)}</td>
-        <td class="u-mono">${money(e.price)}</td><td class="u-mono">${money(e.commission)}</td><td class="u-mono">${money(e.balance)}</td>
-        <td><span class="pill ${sm.cls}">${sm.label}</span></td></tr>`;}).join('')}
+        <td data-label="Artist">${esc(a.name)}</td><td data-label="Client">${esc(e.clientName)}</td><td data-label="Date" class="u-mono">${fmtDateShort(e.date)}</td>
+        <td data-label="Price" class="u-mono">${money(e.price)}</td><td data-label="Commission" class="u-mono">${money(e.commission)}</td><td data-label="Payout" class="u-mono">${money(e.balance)}</td>
+        <td data-label="Status"><span class="pill ${sm.cls}">${sm.label}</span></td></tr>`;}).join('')}
     </tbody></table></div>
   `;
 }
