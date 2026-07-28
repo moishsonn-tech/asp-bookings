@@ -965,10 +965,10 @@ function renderUserChip(){
 
 const MGMT_NAV_ITEMS = [
   ['dashboard','Dashboard',ICO.dash], ['calendar','Calendar',ICO.cal], ['leads','Leads',ICO.leads],
-  ['artists','Artists',ICO.artists], ['projects','Projects',ICO.kanban], ['pricing','Pricing',ICO.tag], ['financials','Financials',ICO.money],
+  ['artists','Artists',ICO.artists], /* ['projects','Projects',ICO.kanban], -- hidden until real projects are in use, see asp_bookings_project memory */ ['pricing','Pricing',ICO.tag], ['financials','Financials',ICO.money],
 ];
 const ARTIST_NAV_ITEMS = [
-  ['a_dashboard','Dashboard',ICO.dash], ['a_gigs','My Gigs',ICO.leads], ['a_projects','Projects',ICO.kanban],
+  ['a_dashboard','Dashboard',ICO.dash], ['a_gigs','My Gigs',ICO.leads], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
 ];
 function isNavActive(v){ return S.view===v || (v==='artists' && S.view==='artist_detail'); }
 
