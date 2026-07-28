@@ -852,6 +852,7 @@ function exportCSV(){
 /* ============ RENDER: SHELL ============ */
 function render(){
   const app = document.getElementById('app');
+  const prevScroll = { sheet: document.querySelector('.sheet')?.scrollTop, modal: document.querySelector('.modal')?.scrollTop };
   if(!S.user){ app.innerHTML = renderLogin() + renderInstallBanner(); bindGlobal(); return; }
   const isAdmin = isAdminUser(S.user);
   app.innerHTML = `
@@ -883,6 +884,8 @@ function render(){
     ${renderInstallBanner()}
   `;
   bindGlobal();
+  if(prevScroll.sheet){ const s=document.querySelector('.sheet'); if(s) s.scrollTop = prevScroll.sheet; }
+  if(prevScroll.modal){ const m=document.querySelector('.modal'); if(m) m.scrollTop = prevScroll.modal; }
 }
 
 function renderDayList(){
