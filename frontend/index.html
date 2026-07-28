@@ -431,32 +431,6 @@ function saveArtists(){ try{ localStorage.setItem(ARTISTS_LS_KEY, JSON.stringify
   } else saveArtists();
 }
 
-/* ============ PRICING ============ */
-const PRICING_LS_KEY = 'asp_mock_pricing_v1';
-const OVERTIME_MULTIPLIER = 1.5; // time-and-a-half, prorated to the minute past included hours
-function seedPricing(){
-  const p = {};
-  ARTISTS.forEach(a=>{
-    p[a.id] = {};
-    EVENT_TYPES.forEach((type,i)=>{
-      p[a.id][type] = { hourlyRate: 300 + a.slot*35 + i*15, includedHours: 2 };
-    });
-  });
-  return p;
-}
-function loadPricing(){ try{ const raw = localStorage.getItem(PRICING_LS_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
-function savePricing(){ try{ localStorage.setItem(PRICING_LS_KEY, JSON.stringify(PRICING)); }catch(e){} }
-let PRICING = loadPricing();
-if(!PRICING) PRICING = seedPricing();
-ARTISTS.forEach(a=>{ if(!PRICING[a.id]) PRICING[a.id] = {}; EVENT_TYPES.forEach((type,i)=>{ if(!PRICING[a.id][type]) PRICING[a.id][type] = { hourlyRate: 300 + a.slot*35 + i*15, includedHours: 2 }; }); });
-savePricing();
-function getPricing(artistId, type){ return (PRICING[artistId] && PRICING[artistId][type]) || { hourlyRate:0, includedHours:2 }; }
-function setPricing(artistId, type, patch){
-  PRICING[artistId] = PRICING[artistId] || {};
-  PRICING[artistId][type] = Object.assign({hourlyRate:0,includedHours:2}, PRICING[artistId][type], patch);
-  savePricing();
-}
-
 /* ============ PROJECTS ============ */
 const PROJECT_TYPES = {
   Album: ['Writing','Recording','Mixing & Mastering','Artwork','Release'],
@@ -549,7 +523,40 @@ const ADMIN_USERS = [
 const isAdminUser = (id)=>ADMIN_USERS.some(u=>u.id===id);
 const adminById = (id)=>ADMIN_USERS.find(u=>u.id===id);
 
-const EVENT_TYPES = ['Wedding','Bar Mitzvah','Sheva Brachos','Concert','Melave Malka','Chinese Auction','Private Simcha'];
+const EVENT_TYPES = ['Wedding','Bar Mitzvah','Sheva Brachos','Concert','Melave Malka','Chinese Auction','Private Simcha','Other'];
+
+/* ============ PRICING ============ */
+const PRICING_LS_KEY = 'asp_mock_pricing_v1';
+const OVERTIME_MULTIPLIER = 1.5; // time-and-a-half, prorated to the minute past included hours
+function seedPricing(){
+  const p = {};
+  ARTISTS.forEach(a=>{
+    p[a.id] = {};
+    EVENT_TYPES.forEach((type,i)=>{
+      p[a.id][type] = { hourlyRate: 300 + a.slot*35 + i*15, includedHours: 2 };
+    });
+  });
+  return p;
+}
+function loadPricing(){ try{ const raw = localStorage.getItem(PRICING_LS_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
+function savePricing(){ try{ localStorage.setItem(PRICING_LS_KEY, JSON.stringify(PRICING)); }catch(e){} }
+let PRICING = loadPricing();
+if(!PRICING) PRICING = seedPricing();
+ARTISTS.forEach(a=>{ if(!PRICING[a.id]) PRICING[a.id] = {}; EVENT_TYPES.forEach((type,i)=>{ if(!PRICING[a.id][type]) PRICING[a.id][type] = { hourlyRate: 300 + a.slot*35 + i*15, includedHours: 2 }; }); });
+savePricing();
+function getPricing(artistId, type){ return (PRICING[artistId] && PRICING[artistId][type]) || { hourlyRate:0, includedHours:2 }; }
+function applyStandardPricing(){
+  const f = S.newLeadForm;
+  if(!f.artistId || !f.type || f.type==='Other') return;
+  const p = getPricing(f.artistId, f.type);
+  if(p.hourlyRate) f.price = p.hourlyRate * p.includedHours;
+  if(f.time && p.includedHours) f.endTime = addMinutesToTime(f.time, Math.round(p.includedHours*60));
+}
+function setPricing(artistId, type, patch){
+  PRICING[artistId] = PRICING[artistId] || {};
+  PRICING[artistId][type] = Object.assign({hourlyRate:0,includedHours:2}, PRICING[artistId][type], patch);
+  savePricing();
+}
 const CHARGE_PRESETS = ['Travel','Flights','Hotel & Lodging','Sound & Production Rider','Musicians & Band','Other'];
 const VENUES = [
   {venue:'Ateres Chaya Hall', city:'Lakewood', state:'NJ'}, {venue:'Prospect Hall', city:'Brooklyn', state:'NY'},
@@ -670,6 +677,7 @@ let S = {
   dragProjectId:null,
   newTaskText:'',
   showDraftUpdate:false,
+  showReminderPreview:false,
   projectTab:'tasks',
   newCommentText:'',
   newLinkForm:{},
@@ -697,6 +705,12 @@ function fmtDate(iso){ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateS
 function fmtDateShort(iso){ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-US',{month:'short', day:'numeric'}); }
 function fmtTime(t){ const [h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'AM'; const hh=((h+11)%12)+1; return `${hh}:${String(m).padStart(2,'0')} ${ap}`; }
 function fmtTimeRange(start, end){ return end? `${fmtTime(start)} – ${fmtTime(end)}` : fmtTime(start); }
+function fmtFlightDateTime(s){
+  if(!s || s==='—') return '—';
+  const [datePart, timePart] = s.split(' ');
+  if(!datePart || !timePart) return s;
+  return `${fmtDateShort(datePart)} · ${fmtTime(timePart)}`;
+}
 function addMinutesToTime(t, mins){ const [h,m]=t.split(':').map(Number); const total=(h*60+m+mins+1440)%1440; return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`; }
 function daysUntil(iso){ const today=new Date(); today.setHours(0,0,0,0); const d=new Date(iso+'T00:00:00'); return Math.round((d-today)/86400000); }
 function isPast(iso){ return daysUntil(iso) < 0; }
@@ -791,7 +805,7 @@ S.showInstallBanner = shouldShowInstallBanner();
 function closeAllOverlays(){
   S.eventId=null; S.projectId=null; S.showNewLead=false; S.showAddArtist=false; S.newArtistWelcome=null;
   S.dayListDate=null; S.showNewProject=false; S.showFlightForm=false; S.showContract=false;
-  S.showAddCharge=false; S.showEventMenu=false; S.showDraftUpdate=false; S.projectTab='tasks';
+  S.showAddCharge=false; S.showEventMenu=false; S.showDraftUpdate=false; S.projectTab='tasks'; S.showReminderPreview=false;
 }
 function navigate(view, opts={}){ closeAllOverlays(); S.view=view; Object.assign(S, opts); render(); window.scrollTo({top:0}); }
 function openEvent(id){ closeAllOverlays(); S.eventId=id; render(); }
@@ -865,6 +879,7 @@ function render(){
     ${S.showNewProject ? renderNewProjectModal() : ''}
     ${S.projectId ? renderProjectDetail() : ''}
     ${S.eventId ? renderEventSheet(getEvent(S.eventId)) : ''}
+    ${S.showReminderPreview ? renderReminderPreview() : ''}
     ${renderInstallBanner()}
   `;
   bindGlobal();
@@ -1423,27 +1438,30 @@ function renderProjectDetail(){
 
           ${S.projectTab==='media' ? `
           <div class="u-label" style="margin-bottom:8px;">Images</div>
-          ${p.images.length? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;">
+          <label style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:22px 12px;border:1.5px dashed var(--border-strong);border-radius:var(--r-md);cursor:pointer;margin-bottom:14px;color:var(--ink-2);">
+            ${ICO.plus}<strong style="font-size:13px;">Upload Image</strong><span style="font-size:11px;color:var(--ink-3);">Reference photos, cover art drafts, etc.</span>
+            <input type="file" accept="image/*" data-action="upload-project-image" data-id="${p.id}" multiple style="display:none;"/>
+          </label>
+          ${p.images.length? `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px;">
             ${p.images.map(img=>`<div style="position:relative;">
-              <a href="${img.dataUrl}" target="_blank" style="display:block;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border);"><img src="${img.dataUrl}" alt="${esc(img.name)}" style="width:100%;height:100%;object-fit:cover;"/></a>
-              ${isAdmin?`<button class="icon-btn" data-action="remove-project-image" data-id="${p.id}" data-imgid="${img.id}" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:#fff;width:22px;height:22px;">${ICO.x}</button>`:''}
+              <a href="${img.dataUrl}" target="_blank" rel="noopener" style="display:block;aspect-ratio:1;border-radius:8px;overflow:hidden;border:1px solid var(--border);"><img src="${img.dataUrl}" alt="${esc(img.name)}" style="width:100%;height:100%;object-fit:cover;"/></a>
+              <button class="icon-btn" data-action="remove-project-image" data-id="${p.id}" data-imgid="${img.id}" style="position:absolute;top:2px;right:2px;background:rgba(0,0,0,.55);color:#fff;width:22px;height:22px;">${ICO.x}</button>
             </div>`).join('')}
-          </div>` : `<p style="font-size:12.5px;color:var(--ink-3);margin:0 0 10px;">No images yet.</p>`}
-          ${isAdmin? `<label class="btn btn-sm" style="cursor:pointer;display:inline-flex;margin-bottom:20px;">Upload Image<input type="file" accept="image/*" data-action="upload-project-image" data-id="${p.id}" multiple style="display:none;"/></label>` : ''}
+          </div>` : `<p style="font-size:12.5px;color:var(--ink-3);margin:0 0 20px;">No images yet.</p>`}
 
           <div class="u-label" style="margin-bottom:8px;">Video Links</div>
-          <div class="log" style="margin-bottom:${isAdmin?'10px':'0'};">
+          <div class="log" style="margin-bottom:10px;">
             ${p.links.length? p.links.map(l=>`<div class="log-item" style="align-items:center;">
               <span class="log-ico">${ICO.share}</span>
               <a href="${esc(l.url)}" target="_blank" rel="noopener" style="flex:1;color:var(--accent);text-decoration:none;font-size:12.5px;word-break:break-all;">${esc(l.label||l.url)}</a>
-              ${isAdmin?`<button class="icon-btn" data-action="remove-project-link" data-id="${p.id}" data-linkid="${l.id}" style="width:24px;height:24px;">${ICO.x}</button>`:''}
+              <button class="icon-btn" data-action="remove-project-link" data-id="${p.id}" data-linkid="${l.id}" style="width:24px;height:24px;">${ICO.x}</button>
             </div>`).join('') : `<p style="font-size:12.5px;color:var(--ink-3);margin:0;">No links yet.</p>`}
           </div>
-          ${isAdmin? `<div data-form="projectlink" style="display:flex;gap:6px;flex-wrap:wrap;">
+          <div data-form="projectlink" style="display:flex;gap:6px;flex-wrap:wrap;">
             <input data-field="linkLabel" placeholder="Label (optional)" style="flex:1;min-width:100px;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);" value="${esc(S.newLinkForm.label||'')}"/>
             <input data-field="linkUrl" placeholder="https://…" style="flex:2;min-width:140px;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);" value="${esc(S.newLinkForm.url||'')}"/>
             <button class="btn btn-sm" data-action="add-project-link" data-id="${p.id}">Add</button>
-          </div>`:''}
+          </div>
           ` : ''}
 
           ${S.projectTab==='activity' ? `
@@ -1538,8 +1556,9 @@ function renderNewLeadModal(){
         </div>
         <div class="field-row">
           <div class="field"><label>Client Name</label><input data-field="clientName" value="${esc(f.clientName||'')}" placeholder="Full name"/></div>
-          <div class="field"><label>Event Type</label><select data-field="type">${EVENT_TYPES.map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}</select></div>
+          <div class="field"><label>Event Type</label><select data-action="pick-event-type">${EVENT_TYPES.map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}</select></div>
         </div>
+        ${f.type==='Other'? `<div class="field"><label>Describe the Event Type</label><input data-field="customType" value="${esc(f.customType||'')}" placeholder="e.g. Bris, Vort, Studio Session"/></div>` : ''}
         <div class="field-row">
           <div class="field"><label>Client Email</label><input data-field="clientEmail" value="${esc(f.clientEmail||'')}" placeholder="name@example.com"/></div>
           <div class="field"><label>Client Phone</label><input data-field="clientPhone" value="${esc(f.clientPhone||'')}" placeholder="(555) 555-5555"/></div>
@@ -1582,6 +1601,32 @@ function renderAddArtistModal(){
   </div>`;
 }
 
+function renderReminderPreview(){
+  const ev = getEvent(S.eventId); if(!ev) return '';
+  const artist = artistById(ev.artistId);
+  const balance = ev.balance + chargesTotal(ev);
+  const zelleText = `Zelle payment to ${artist.email} — ${money(balance)} for ${artist.name} (${ev.type}, ${fmtDateShort(ev.date)})`;
+  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(zelleText)}`;
+  return `<div class="overlay center" data-action="overlay-close-reminderpreview">
+    <div class="doc" data-stop style="width:440px;">
+      <div class="sheet-head"><h2 style="font-size:1.1rem;">Reminder Email Preview</h2><button class="icon-btn" data-action="close-reminder-preview">${ICO.x}</button></div>
+      <div class="doc-body" style="padding:24px 26px 30px;">
+        <div style="font-size:12.5px;line-height:1.6;margin-bottom:16px;">
+          <div><strong>To:</strong> ${esc(ev.clientEmail)}</div>
+          <div><strong>Subject:</strong> Balance reminder — ${esc(artist.name)}, ${esc(fmtDateShort(ev.date))}</div>
+          <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;"/>
+          <p style="margin:0 0 8px;">Hi ${esc(ev.clientName.split(' ')[0])},</p>
+          <p style="margin:0 0 8px;">Just a reminder — the remaining balance of ${money(balance)} for ${esc(artist.name)}'s ${esc(ev.type)} on ${esc(fmtDate(ev.date))} is due via Zelle. Scan the code below or send to ${esc(artist.email)}.</p>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px;background:var(--surface-2);border-radius:var(--r-md);">
+          <img src="${qrUrl}" alt="Zelle QR code" width="180" height="180" style="border-radius:8px;background:#fff;padding:8px;"/>
+          <span class="u-mono" style="font-size:11.5px;color:var(--ink-2);">${esc(artist.email)}</span>
+        </div>
+        <p style="font-size:10.5px;color:var(--ink-3);margin:14px 0 0;text-align:center;">QR points to a mock Zelle reference — swap in the real Zelle deep link once ASP is online.</p>
+      </div>
+    </div>
+  </div>`;
+}
 function renderWelcomeEmailPreview(){
   const w = S.newArtistWelcome; if(!w) return '';
   return `<div class="overlay center" data-action="overlay-close-welcome">
@@ -1715,8 +1760,8 @@ function renderFlightBlock(ev, isAdmin){
     <div class="ledger" style="margin-top:8px;">
       <div class="ledger-row"><span>Airline</span><span class="amt">${esc(f.airline)}</span></div>
       <div class="ledger-row"><span>Confirmation</span><span class="amt">${esc(f.confirmation)}</span></div>
-      <div class="ledger-row"><span>Depart</span><span class="amt">${esc(f.depart)}</span></div>
-      <div class="ledger-row"><span>Arrive</span><span class="amt">${esc(f.arrive)}</span></div>
+      <div class="ledger-row"><span>Depart</span><span class="amt">${esc(fmtFlightDateTime(f.depart))}</span></div>
+      <div class="ledger-row"><span>Arrive</span><span class="amt">${esc(fmtFlightDateTime(f.arrive))}</span></div>
       ${f.notes?`<div class="ledger-row"><span>Notes</span><span class="amt">${esc(f.notes)}</span></div>`:''}
     </div>
   </div>`;
@@ -1764,7 +1809,7 @@ function renderPrepSheets(ev, isAdmin){
       <div class="log-item" style="align-items:center;">
         <span class="log-ico">${ICO.leads}</span>
         <span style="flex:1;">${esc(f.name)}<div class="log-time">Added ${fmtDateShort(f.uploadedAt)}</div></span>
-        <a href="${f.dataUrl}" download="${esc(f.name)}" class="btn btn-sm">Download</a>
+        <a href="${f.dataUrl}" target="_blank" rel="noopener" class="btn btn-sm">View</a>
         ${isAdmin?`<button class="icon-btn" data-action="remove-prep" data-id="${ev.id}" data-prepid="${f.id}" title="Remove">${ICO.x}</button>`:''}
       </div>`).join('')}</div>` : `<p style="font-size:12.5px;color:var(--ink-3);margin:0 0 ${isAdmin?'10px':'0'};">No prep sheets uploaded yet.</p>`}
     ${isAdmin? `<label class="btn btn-sm" style="cursor:pointer;display:inline-flex;">Upload File<input type="file" data-action="upload-prep" data-id="${ev.id}" multiple style="display:none;"/></label>
@@ -1794,6 +1839,7 @@ function renderAdminActions(ev){
         <button class="btn btn-sm" data-action="send-reminder" data-id="${ev.id}" style="flex:1;min-width:0;white-space:normal;">Send reminder now</button>
         <button class="btn btn-sm btn-primary" data-action="mark-balance" data-id="${ev.id}" style="flex:1;min-width:0;white-space:normal;">${ICO.check} Mark Balance Received</button>
       </div>
+      <button class="btn btn-sm btn-ghost" data-action="preview-reminder" data-id="${ev.id}" style="color:var(--ink-2);">${ICO.sms} Preview reminder email (Zelle QR)</button>
     </div>`);
   }
   return buttons.length? `<div style="display:flex;flex-direction:column;gap:10px;">${buttons.join('')}</div>` : '';
@@ -1808,9 +1854,15 @@ function renderFlightFormOverlay(){
       <div class="sheet-body">
         <div class="field"><label>Airline</label><input data-field="airline" value="${esc(f.airline||'')}" placeholder="Delta"/></div>
         <div class="field"><label>Confirmation #</label><input data-field="confirmation" value="${esc(f.confirmation||'')}" placeholder="CNF1234"/></div>
+        <div class="u-label" style="margin-top:4px;">Departure</div>
         <div class="field-row">
-          <div class="field"><label>Depart</label><input data-field="depart" value="${esc(f.depart||'')}" placeholder="2026-08-14 14:20"/></div>
-          <div class="field"><label>Arrive</label><input data-field="arrive" value="${esc(f.arrive||'')}" placeholder="2026-08-14 17:05"/></div>
+          <div class="field"><label>Date</label><input type="date" data-field="departDate" value="${f.departDate||''}"/></div>
+          <div class="field"><label>Time</label><input type="time" data-field="departTime" value="${f.departTime||''}"/></div>
+        </div>
+        <div class="u-label" style="margin-top:4px;">Arrival</div>
+        <div class="field-row">
+          <div class="field"><label>Date</label><input type="date" data-field="arriveDate" value="${f.arriveDate||''}"/></div>
+          <div class="field"><label>Time</label><input type="time" data-field="arriveTime" value="${f.arriveTime||''}"/></div>
         </div>
         <button class="btn btn-primary btn-block" data-action="save-flight" data-id="${ev.id}">Save &amp; Notify Artist</button>
       </div>
@@ -1857,11 +1909,14 @@ function renderContractDoc(){
 
         <div class="doc-section"><h3>Compensation</h3>
           <div class="ledger" style="margin-bottom:20px;">
-            <div class="ledger-row"><span>Performance Fee</span><span class="amt">${money(ev.price)}</span></div>
-            ${(ev.charges||[]).map(c=>`<div class="ledger-row"><span>${esc(c.label)}</span><span class="amt">${money(c.amount)}</span></div>`).join('')}
-            <div class="ledger-row"><span>Total Charged to Client</span><span class="amt">${money(ev.price + chargesTotal(ev))}</span></div>
-            <div class="ledger-row"><span>Booking Fee (15% of performance fee) — due upon signing, via QuickBooks invoice</span><span class="amt">${money(ev.commission)}</span></div>
-            <div class="ledger-row total"><span>Balance — due day of event, via Zelle direct to Performer</span><span class="amt">${money(ev.balance + chargesTotal(ev))}</span></div>
+            <div class="ledger-row total"><span>Total Fee</span><span class="amt">${money(ev.price + chargesTotal(ev))}</span></div>
+          </div>
+        </div>
+
+        <div class="doc-section"><h3>Payment Schedule</h3>
+          <div class="ledger" style="margin-bottom:20px;">
+            <div class="ledger-row"><span>Booking Fee — due upon signing, via QuickBooks invoice</span><span class="amt">${money(ev.commission)}</span></div>
+            <div class="ledger-row"><span>Balance — due day of event, via Zelle</span><span class="amt">${money(ev.balance + chargesTotal(ev))}</span></div>
           </div>
         </div>
 
@@ -1906,7 +1961,9 @@ function doToggleFlight(id){
 }
 function doSaveFlight(id){
   const ev = getEvent(id); const f=S.flightForm;
-  ev.flight = {airline:f.airline||'—', confirmation:f.confirmation||'—', depart:f.depart||'—', arrive:f.arrive||'—'};
+  const depart = f.departDate? `${f.departDate} ${f.departTime||'00:00'}` : '—';
+  const arrive = f.arriveDate? `${f.arriveDate} ${f.arriveTime||'00:00'}` : '—';
+  ev.flight = {airline:f.airline||'—', confirmation:f.confirmation||'—', depart, arrive};
   ev.flightBooked = true;
   logEvent(ev,'success',`Flight booked & added to itinerary — ${artistById(ev.artistId).name} notified.`);
   toast('Flight saved — artist notified.', 'success'); S.showFlightForm=false; saveEvents(); openEvent(id);
@@ -2111,7 +2168,7 @@ function doSubmitLead(){
   if(!f.artistId || !(f.clientName||'').trim() || !f.date){ toast('Pick an artist and enter a client name and date.', 'system'); return; }
   const price = Number(f.price)||0; const commission = Math.round(price*0.15);
   const ev = {
-    id:'EV-'+(EVID++), artistId:f.artistId, type: f.type||EVENT_TYPES[0], clientName:f.clientName,
+    id:'EV-'+(EVID++), artistId:f.artistId, type: (f.type==='Other'? (f.customType||'').trim()||'Other' : f.type)||EVENT_TYPES[0], clientName:f.clientName,
     clientEmail: f.clientEmail||'', clientPhone: f.clientPhone||'', date: f.date, time: f.time||'19:00', endTime: f.endTime||null,
     venue: f.venue||'', city: f.city||'', state: f.state||'',
     price, commission, balance: price-commission, status:'lead', depositReceived:false, depositReceivedDate:null,
@@ -2179,7 +2236,7 @@ function bindGlobal(){
       case 'open-artist': navigate('artist_detail', {artistDetailId:id}); break;
       case 'open-new-lead': closeAllOverlays(); S.newLeadForm={date:'',time:'19:00'}; S.showNewLead=true; render(); break;
       case 'close-sheet': closeSheet(); break;
-      case 'pick-artist': S.newLeadForm.artistId = id; render(); break;
+      case 'pick-artist': S.newLeadForm.artistId = id; applyStandardPricing(); render(); break;
       case 'submit-lead': doSubmitLead(); break;
       case 'add-lead-charge': {
         const f = S.newLeadForm;
@@ -2222,6 +2279,9 @@ function bindGlobal(){
       case 'contract-overlay-close': if(e.target===t) { S.showContract=false; render(); } break;
       case 'print-contract': window.print(); break;
       case 'send-reminder': doSendReminder(id); break;
+      case 'preview-reminder': S.showReminderPreview=true; render(); break;
+      case 'close-reminder-preview': S.showReminderPreview=false; render(); break;
+      case 'overlay-close-reminderpreview': if(e.target===t){ S.showReminderPreview=false; render(); } break;
       case 'mark-balance': doMarkBalance(id); break;
       case 'gcal': window.open(gcalUrl(getEvent(id)), '_blank'); break;
       case 'ics': downloadIcs(getEvent(id)); break;
@@ -2271,6 +2331,9 @@ function bindGlobal(){
   });
   document.querySelectorAll('[data-lead-charge-preset]').forEach(sel=>{
     sel.addEventListener('change', ()=>{ S.newLeadForm.chargePreset = sel.value; render(); });
+  });
+  document.querySelectorAll('[data-action="pick-event-type"]').forEach(sel=>{
+    sel.addEventListener('change', ()=>{ S.newLeadForm.type = sel.value; applyStandardPricing(); render(); });
   });
   document.querySelectorAll('[data-action="upload-prep"]').forEach(inp=>{
     inp.addEventListener('change', ()=>{ if(inp.files.length) doUploadPrep(inp.getAttribute('data-id'), inp.files); });
