@@ -269,12 +269,6 @@ tr.row-link:hover td{ background:var(--surface-2); }
   var(--page); }
 .login-card{ width:100%; max-width:560px; background:var(--surface); border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-md); padding:34px 32px; }
 .login-grid{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:22px; }
-.login-opt{ display:flex; align-items:center; gap:10px; padding:11px 12px; border-radius:var(--r-md); border:1px solid var(--border); background:var(--surface-2); text-align:left; }
-.login-opt:hover{ border-color:var(--accent); background:var(--accent-wash); }
-.login-opt .g{ margin-left:auto; font-size:10.5px; color:var(--ink-3); font-weight:700; }
-.login-opt.admin{ grid-column:1/-1; background:var(--accent-wash); border-color:var(--accent); }
-.google-btn{ display:inline-flex; align-items:center; gap:10px; padding:11px 22px; border-radius:6px; border:1px solid #dadce0; background:#fff; color:#3c4043; font-size:14px; font-weight:600; font-family:Roboto,-apple-system,sans-serif; box-shadow:0 1px 2px rgba(0,0,0,.08); transition:.16s ease; }
-.google-btn:hover{ box-shadow:0 1px 4px rgba(0,0,0,.2); border-color:#c6c6c6; }
 .login-card.chooser{ position:relative; padding-top:44px; }
 .chooser-back{ position:absolute; top:14px; left:14px; }
 .chooser-list{ display:flex; flex-direction:column; gap:2px; max-height:360px; overflow-y:auto; margin-top:6px; }
@@ -1017,6 +1011,7 @@ function renderRail(){
     </div>
     <div class="rail-foot">
       <button class="btn btn-ghost btn-block" data-action="reset-demo" style="justify-content:flex-start;font-weight:600;color:var(--ink-3);">Reset demo data</button>
+      <div style="padding:10px 10px 0;font-size:11px;color:var(--ink-3);">${APP_VERSION}</div>
     </div>
   </div>`;
 }
@@ -1057,19 +1052,17 @@ function renderView(){
 }
 
 /* ============ LOGIN ============ */
-const GOOGLE_G = `<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3c-1.6 4.7-6.1 8-11.3 8-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.7-.4-3.5z"/><path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 15.9 18.9 13 24 13c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.6 6.1 29.6 4 24 4c-7.5 0-13.9 4.2-17.7 10.7z"/><path fill="#4CAF50" d="M24 44c5.5 0 10.4-1.9 14.3-5.1l-6.6-5.6c-2 1.5-4.6 2.5-7.7 2.5-5.2 0-9.7-3.3-11.3-8l-6.6 5.1C9.9 39.6 16.4 44 24 44z"/><path fill="#1976D2" d="M43.6 20.5H42V20H24v8h11.3c-.8 2.3-2.2 4.3-4.1 5.7l6.6 5.6C41.5 36 44 30.5 44 24c0-1.3-.1-2.7-.4-3.5z"/></svg>`;
 function renderLogin(){
-  if(S.showChooser) return renderGoogleChooser();
+  if(S.showChooser) return renderAccountChooser();
   return `<div class="login-wrap"><div class="login-card" style="text-align:center;">
     <div class="wordmark" style="font-size:1.6rem;justify-content:center;"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP<small>Bookings</small></div>
-    <p style="color:var(--ink-2);font-size:13.5px;margin:16px 0 26px;">Sign in with your ASP Google account to view your schedule and bookings.</p>
-    <button class="google-btn" data-action="show-chooser">${GOOGLE_G}Sign in with Google</button>
+    <p style="color:var(--ink-2);font-size:13.5px;margin:16px 0 26px;">Sign in to view your schedule and bookings.</p>
+    <button class="btn btn-primary btn-block" data-action="show-chooser">Sign In</button>
   </div></div>`;
 }
-function renderGoogleChooser(){
+function renderAccountChooser(){
   return `<div class="login-wrap"><div class="login-card chooser">
     <button class="icon-btn chooser-back" data-action="hide-chooser">${ICO.chev('l')}</button>
-    <div style="display:flex;justify-content:center;margin-bottom:8px;">${GOOGLE_G}</div>
     <h2 style="font-size:1.15rem;text-align:center;">Choose an account</h2>
     <p style="text-align:center;color:var(--ink-2);font-size:12.5px;margin:4px 0 6px;">to continue to ASP Bookings</p>
     <div class="chooser-list">
@@ -1084,7 +1077,7 @@ function renderGoogleChooser(){
         <span><strong>${esc(a.name)}</strong><span class="chooser-email">${esc(a.email)}</span></span>
       </button>`).join('')}
     </div>
-    <p style="text-align:center;color:var(--ink-3);font-size:10.5px;margin-top:16px;">Demo mode — pick any account to preview that person's view. In production this list comes from real Google sign-in, so each person only ever sees their own account.</p>
+    <p style="text-align:center;color:var(--ink-3);font-size:10.5px;margin-top:16px;">Demo mode — pick any account to preview that person's view. In production, each person only ever sees their own account.</p>
   </div></div>`;
 }
 
@@ -1723,7 +1716,7 @@ function renderWelcomeEmailPreview(){
             <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;"/>
             <p style="margin:0 0 8px;">Hi ${esc(w.name.split(' ')[0])},</p>
             <p style="margin:0 0 8px;">Welcome to ASP! Your bookings dashboard is ready — you'll see every upcoming gig, its details, and your payout breakdown in one place.</p>
-            <p style="margin:0 0 8px;">Sign in any time with your Google account (${esc(w.email)}) — no separate password needed.</p>
+            <p style="margin:0 0 8px;">Sign in any time at ${esc(w.email)} — no separate password needed.</p>
             <p style="margin:0;">— ASP Artist Management</p>
           </div>
         </div>
