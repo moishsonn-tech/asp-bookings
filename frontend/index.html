@@ -420,9 +420,9 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
 .opener-mark i:nth-child(5){height:50%; animation-delay:.55s;}
 @keyframes openerBar{ to{ transform:scaleY(1); } }
 .opener-mark.activate{ animation:openerDip .4s ease; }
-.opener-mark.activate i{ animation:openerBar .5s cubic-bezier(.3,1.6,.5,1) forwards, openerGlow .5s ease; }
+.opener-mark.activate i{ animation:openerBar .5s cubic-bezier(.3,1.6,.5,1) forwards, openerGlow 1.4s ease; }
 @keyframes openerDip{ 0%{transform:scale(1);} 40%{transform:scale(.93);} 100%{transform:scale(1);} }
-@keyframes openerGlow{ 0%{filter:drop-shadow(0 0 0 transparent);} 45%{filter:drop-shadow(0 0 16px #D9A44E);} 100%{filter:drop-shadow(0 0 0 transparent);} }
+@keyframes openerGlow{ 0%{filter:drop-shadow(0 0 0 transparent);} 20%{filter:drop-shadow(0 0 18px #D9A44E);} 55%{filter:drop-shadow(0 0 16px #D9A44E);} 100%{filter:drop-shadow(0 0 0 transparent);} }
 .opener-word{ font-family:var(--font-display); font-weight:600; font-size:2.5rem; letter-spacing:-.01em; color:#F7F2E7; opacity:0; transform:translateY(10px); animation:openerFadeUp .6s ease forwards; animation-delay:.85s; }
 .opener-tag{ font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:#8C8168; opacity:0; animation:openerFadeUp .6s ease forwards; animation-delay:1.05s; }
 @keyframes openerFadeUp{ to{opacity:1; transform:translateY(0);} }
