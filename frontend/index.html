@@ -167,13 +167,12 @@ input,select,textarea{font-family:inherit; font-size:inherit;}
 }
 .bento-hero{
   grid-area:hero; padding:24px 26px; display:flex; flex-direction:column; justify-content:space-between; gap:22px;
-  background:linear-gradient(155deg,var(--accent) 0%,var(--accent-hover) 100%); color:#fff; border:none;
-  position:relative; overflow:hidden; box-shadow:0 16px 40px -12px var(--accent);
+  background:var(--accent-wash); color:var(--accent-ink); border:1px solid var(--border); transition:.18s cubic-bezier(.2,.7,.3,1);
 }
-.bento-hero .ico-big{ position:absolute; right:-18px; top:-18px; width:132px; height:132px; opacity:.14; stroke-width:1.2; }
-.bento-hero .u-label{ color:rgba(255,255,255,.8); position:relative; }
-.bento-hero .val{ font-family:var(--font-display); font-size:2.6rem; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; position:relative; }
-.bento-hero .sub{ font-size:12.5px; color:rgba(255,255,255,.82); position:relative; }
+.bento-hero:hover{ transform:translateY(-2px); box-shadow:var(--shadow-md); border-color:var(--border-strong); }
+.bento-hero .u-label{ color:var(--accent-ink); opacity:.75; }
+.bento-hero .val{ font-family:var(--font-display); font-size:2.6rem; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
+.bento-hero .sub{ font-size:12.5px; color:var(--accent-ink); opacity:.8; }
 .bento-a{ grid-area:a; } .bento-b{ grid-area:b; } .bento-c{ grid-area:c; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:16px; }
 .bento-c .val{ font-size:1.7rem; }
 @media (max-width:860px){ .bento{ grid-template-columns:1fr 1fr; grid-template-areas:"hero hero" "a b" "c c"; } }
@@ -768,6 +767,14 @@ function fmtDate(iso){ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateS
 function fmtDateShort(iso){ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-US',{month:'short', day:'numeric'}); }
 function fmtTime(t){ const [h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'AM'; const hh=((h+11)%12)+1; return `${hh}:${String(m).padStart(2,'0')} ${ap}`; }
 function fmtTimeRange(start, end){ return end? `${fmtTime(start)} – ${fmtTime(end)}` : fmtTime(start); }
+function hoursBetween(start, end){
+  if(!start || !end) return null;
+  const [sh,sm] = start.split(':').map(Number), [eh,em] = end.split(':').map(Number);
+  let mins = (eh*60+em) - (sh*60+sm);
+  if(mins <= 0) mins += 24*60;
+  const hrs = mins/60;
+  return Number.isInteger(hrs) ? String(hrs) : hrs.toFixed(1);
+}
 function fmtFlightDateTime(s){
   if(!s || s==='—') return '—';
   const [datePart, timePart] = s.split(' ');
@@ -998,11 +1005,13 @@ const MGMT_NAV_ITEMS = [
 const ARTIST_NAV_ITEMS = [
   ['a_dashboard','Dashboard',ICO.dash], ['a_gigs','My Gigs',ICO.leads], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
 ];
+const APP_VERSION = 'v1.0.0';
+const OVERTIME_PER_HALF_HOUR = 250;
 function isNavActive(v){ return S.view===v || (v==='artists' && S.view==='artist_detail'); }
 
 function renderRail(){
   return `<div class="rail">
-    <div class="wordmark"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP<small>Artist Management</small></div>
+    <div class="wordmark"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP</div>
     <div class="rail-nav">
       ${MGMT_NAV_ITEMS.map(([v,l,ic])=>`<a href="#" class="rail-link ${isNavActive(v)?'active':''}" data-action="nav" data-view="${v}">${ic}${l}</a>`).join('')}
     </div>
@@ -1052,7 +1061,7 @@ const GOOGLE_G = `<svg width="18" height="18" viewBox="0 0 48 48"><path fill="#F
 function renderLogin(){
   if(S.showChooser) return renderGoogleChooser();
   return `<div class="login-wrap"><div class="login-card" style="text-align:center;">
-    <div class="wordmark" style="font-size:1.6rem;justify-content:center;"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP<small>Artist Management · Bookings</small></div>
+    <div class="wordmark" style="font-size:1.6rem;justify-content:center;"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP<small>Bookings</small></div>
     <p style="color:var(--ink-2);font-size:13.5px;margin:16px 0 26px;">Sign in with your ASP Google account to view your schedule and bookings.</p>
     <button class="google-btn" data-action="show-chooser">${GOOGLE_G}Sign in with Google</button>
   </div></div>`;
@@ -1094,7 +1103,6 @@ function renderMgmtDashboard(){
   ${isCEO ? `<h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:16px;">Welcome, CEO</h2>` : ''}
   <div class="bento">
     <div class="card bento-hero" style="cursor:pointer;" data-action="nav" data-view="financials">
-      ${ICO.money.replace('class="ico"','class="ico ico-big"')}
       <span class="u-label">MTD ASP Revenue</span>
       <div><span class="val">${money(mtdRevenue)}</span><br><span class="sub">Booking fees received this month</span></div>
     </div>
@@ -1959,11 +1967,16 @@ function renderContractDoc(){
       </div>
       <div class="doc-body" id="contractDocBody">
         <div class="doc-letterhead">
-          <div class="wordmark" style="font-size:1.1rem;"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP<small>Artist Management</small></div>
+          <div class="wordmark" style="font-size:1.1rem;"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP</div>
           <span class="pill ${signed?'pill-good':'pill-neutral'}">${draft? 'Draft — not yet sent' : signed? 'Signed & Booking Fee Received' : 'Awaiting Signature'}</span>
         </div>
-        <div class="doc-title">Performance Agreement</div>
+        <div class="doc-title">${esc(artist.name.toUpperCase())}<br/><span style="font-size:.62em;letter-spacing:.06em;">ARTIST AGREEMENT</span></div>
         <div class="doc-sub">Agreement ${esc(ev.id)} &middot; Prepared ${fmtDate(ev.createdAt)}</div>
+
+        <p style="font-size:13px;line-height:1.6;">This contractual agreement is made on ${fmtDate(ev.createdAt)}, between
+          <strong>${esc(artist.name)}</strong>, hereafter referred to as &ldquo;the Artist&rdquo;, and <strong>${esc(ev.clientName)}</strong>,
+          hereafter referred to as &ldquo;the Client&rdquo;. It is mutually agreed between the parties, as follows: the Client hereby
+          engages the Artist, and the Artist hereby agrees to perform the engagement, the terms and conditions of which are set forth herein.</p>
 
         <div class="doc-parties">
           <div class="doc-party"><h4>Performer</h4><p><strong>${esc(artist.name)}</strong><br/>Represented by ASP Artist Management</p></div>
@@ -1972,12 +1985,17 @@ function renderContractDoc(){
 
         <div class="doc-section"><h3>Event Details</h3>
           <div class="doc-facts">
-            <div><span class="k">Event Type</span><span>${esc(ev.type)}</span></div>
-            <div><span class="k">Date</span><span>${fmtDate(ev.date)}</span></div>
-            <div><span class="k">Performance Time</span><span>${fmtTimeRange(ev.time, ev.endTime)}</span></div>
-            <div><span class="k">Venue</span><span>${esc(ev.venue)||'TBD'}</span></div>
-            <div><span class="k">City, State</span><span>${(ev.city||ev.state)? `${esc(ev.city)}${ev.city&&ev.state?', ':''}${esc(ev.state)}` : 'TBD'}</span></div>
+            <div><span class="k">1. Place of engagement</span><span>${esc(ev.venue)||'TBD'}${(ev.city||ev.state)? `, ${esc(ev.city)}${ev.city&&ev.state?', ':''}${esc(ev.state)}` : ''}</span></div>
+            <div><span class="k">2. Date of engagement</span><span>${fmtDate(ev.date)}</span></div>
+            <div><span class="k">3. Hours of engagement</span><span>${hoursBetween(ev.time, ev.endTime) ? hoursBetween(ev.time, ev.endTime)+' hours ('+fmtTimeRange(ev.time, ev.endTime)+')' : fmtTimeRange(ev.time, ev.endTime)}</span></div>
+            <div><span class="k">4. Payment for engagement</span><span>${money(ev.price)}</span></div>
+            <div><span class="k">5. Terms of engagement</span><span>${esc(artist.name)} as performer for the engagement</span></div>
           </div>
+        </div>
+
+        <div class="doc-section">
+          <p style="font-size:13px;margin:0 0 4px;"><strong>Artist shall provide:</strong><br/>Live Vocal Performance${hoursBetween(ev.time,ev.endTime)? ` for up to ${hoursBetween(ev.time,ev.endTime)} hours`:''}</p>
+          <p style="font-size:13px;margin:0;"><strong>Client shall provide:</strong><br/>Payment</p>
         </div>
 
         <div class="doc-section"><h3>Compensation</h3>
@@ -1986,26 +2004,32 @@ function renderContractDoc(){
           </div>
         </div>
 
-        <div class="doc-section"><h3>Payment Schedule</h3>
-          <div class="ledger" style="margin-bottom:20px;">
-            <div class="ledger-row"><span>Booking Fee — due upon signing, via QuickBooks invoice</span><span class="amt">${money(ev.commission)}</span></div>
-            <div class="ledger-row"><span>Balance — due day of event, via Zelle</span><span class="amt">${money(ev.balance + chargesTotal(ev))}</span></div>
-          </div>
-        </div>
-
         <div class="doc-section"><h3>Terms</h3>
           <ul class="doc-terms">
-            <li>This agreement is not binding until the Booking Fee has been received and the event is confirmed on ASP's official calendar.</li>
-            <li>Performance duration is up to two (2) hours from the agreed start time unless otherwise arranged in writing.</li>
+            <li>Contract is not binding until the deposit is received.</li>
+            <li>Should the Artist be canceled within 40 days prior to the event, full payment is required.</li>
+            <li>In the event that the Artist is unable to perform, the Client will be paid back in full.</li>
+            <li>A non-refundable deposit of ${money(ev.commission)} (15%) must be paid upon signing the contract. The rest of the balance must be paid prior to the event.</li>
+            <li>A Mechitzah is required at all events with dancing.</li>
+            <li>If the Artist is asked to stay beyond the agreed upon time, a ${money(OVERTIME_PER_HALF_HOUR)} per half hour charge shall be paid in overtime fees.</li>
+            <li>The Artist may refuse to sing any non-Jewish or secular songs at his discretion.</li>
+            <li>If the event is cancelled due to weather or travel issues, the Artist agrees to return the deposit.</li>
+            <li>Any and all changes to this agreement must be approved and initiated by both Client and Artist.</li>
             <li>${ev.flightNeeded? 'Air travel for the Performer is arranged and confirmed separately by ASP; details are provided once booked.' : 'This engagement does not include Performer travel arrangements.'}</li>
-            <li>The Balance is payable directly to the Performer via Zelle no later than the date of the event.</li>
-            <li>Cancellations within 30 days of the event date forfeit the Booking Fee.</li>
           </ul>
         </div>
 
         <div class="doc-sign">
           <div class="doc-sign-line">${signed? `<span class="doc-signature">${esc(ev.clientName)}</span><br/>Signed electronically &middot; ${fmtDateShort(ev.depositReceivedDate)}` : `<strong>&nbsp;</strong>Client Signature &middot; Date`}</div>
           <div class="doc-sign-line">${signed? `<span class="doc-signature">${esc(artist.name)}</span><br/>` : `<strong>ASP Artist Management</strong>`}For ${esc(artist.name)}</div>
+        </div>
+
+        <div class="doc-section"><h3>Payment</h3>
+          <p style="font-size:12.5px;line-height:1.7;margin:0;">
+            <strong>Booking Fee</strong> (${money(ev.commission)}) — emailed as a QuickBooks invoice upon signing; pay by card or ACH directly from the invoice.<br/>
+            <strong>Balance</strong> (${money(ev.balance + chargesTotal(ev))}) — Zelle to <span class="u-mono">${esc(artist.email)}</span>, due no later than the day of the event.<br/>
+            Prefer to pay by check? Contact <span class="u-mono">office@aspmanagement.com</span> to arrange.
+          </p>
         </div>
 
         <div class="doc-foot">This is a mockup document for demonstration purposes. Payment link and Zelle details are sent with the live email.</div>
