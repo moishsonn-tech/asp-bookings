@@ -296,7 +296,7 @@ tr.row-link:hover td{ background:var(--surface-2); }
 .install-banner .ib-steps{ display:inline-flex; align-items:center; gap:3px; vertical-align:-2px; }
 .install-banner .btn{ flex:none; }
 .install-banner .ib-close{ flex:none; background:transparent; border:none; color:var(--page); opacity:.65; padding:2px; }
-body:has(.bottom-nav) .install-banner{ bottom:60px; }
+body:has(.bottom-nav) .install-banner{ bottom:76px; }
 
 /* ============ MISC ============ */
 .empty{ text-align:center; padding:40px 20px; color:var(--ink-3); font-size:13px; }
@@ -335,11 +335,19 @@ body:has(.bottom-nav) .install-banner{ bottom:60px; }
 }
 @media (max-width: 860px){
   .rail{ display:none; }
-  .content{ padding:14px 12px 84px; }
+  .content{ padding:14px 12px 100px; }
   .topbar{ padding:10px 12px; gap:8px; }
   .topbar h1{ font-size:1.2rem; }
   .stat-row{ grid-template-columns:repeat(2,1fr); }
   .table-cards{ overflow-x:visible; }
+  .timeline{ overflow-x:visible; gap:0; }
+  .tl-step{ min-width:0; flex:1; gap:4px; }
+  .tl-dot{ width:20px; height:20px; font-size:9.5px; }
+  .tl-line{ left:calc(-50% + 10px); width:calc(100% - 20px); }
+  .tl-label{ font-size:8.5px; }
+  .board{ overflow-x:visible; flex-wrap:wrap; }
+  .board-col{ width:100%; }
+  .fin-chart{ gap:6px !important; }
   .table-cards table, .table-cards tbody, .table-cards tr, .table-cards td{ display:block; width:100%; }
   .table-cards thead{ display:none; }
   .table-cards tr{ padding:12px 14px; border-bottom:1px solid var(--border); }
@@ -359,8 +367,8 @@ body:has(.bottom-nav) .install-banner{ bottom:60px; }
   .cal-evt{ font-size:9px; padding:1px 3px; }
   .cal-dow{ font-size:9px; }
   .stat-tile .val{ font-size:1.7rem; }
-  .bottom-nav{ display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--border); padding:8px max(4px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left)); justify-content:space-around; z-index:30; box-sizing:border-box; }
-  .bn-item{ display:flex; flex-direction:column; align-items:center; gap:3px; font-size:10px; font-weight:700; color:var(--ink-3); padding:4px 4px; border-radius:8px; flex:1; min-width:0; }
+  .bottom-nav{ display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--border); padding:4px max(2px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(2px, env(safe-area-inset-left)); justify-content:space-around; z-index:30; box-sizing:border-box; }
+  .bn-item{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:10px; font-weight:700; color:var(--ink-3); padding:8px 2px; min-height:52px; border-radius:10px; flex:1; min-width:0; }
   .bn-item span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .bn-item.active{ color:var(--accent); }
   .bn-item[data-view="projects"], .bn-item[data-view="a_projects"], .bn-item[data-view="pricing"]{ display:none; }
@@ -373,8 +381,8 @@ body:has(.bottom-nav) .install-banner{ bottom:60px; }
   .cal-cell{ min-height:52px; }
   .cal-evt span{ max-width:34px; }
   .bn-item span{ display:none; }
-  .bn-item .ico{ width:20px; height:20px; }
-  .bn-item{ padding:8px 2px; }
+  .bn-item .ico{ width:22px; height:22px; }
+  .bn-item{ padding:10px 2px; min-height:52px; }
 }
 
 /* ============ OPENER ============ */
@@ -1242,17 +1250,17 @@ function renderPricingPage(){
   <div class="chip-row" style="margin-bottom:16px;">
     ${ARTISTS.map(a=>`<button class="filter-chip ${artistId===a.id?'sel':''}" data-action="pricing-artist" data-id="${a.id}"><span class="dot" data-slot="${a.slot}"></span>${a.name.split(' ')[0]}</button>`).join('')}
   </div>
-  <div class="card u-scroll-x">
+  <div class="card u-scroll-x table-cards">
     <table>
       <thead><tr><th>Event Type</th><th>Hourly Rate</th><th>Included Hours</th><th>Overtime (1.5×/hr, prorated)</th></tr></thead>
       <tbody>
         ${EVENT_TYPES.map(type=>{
           const p = getPricing(artistId, type);
           return `<tr>
-            <td>${esc(type)}</td>
-            <td><span class="u-mono" style="margin-right:2px;">$</span><input type="number" min="0" step="25" value="${p.hourlyRate}" data-action="set-hourly-rate" data-artist="${artistId}" data-type="${esc(type)}" style="width:90px;padding:6px 8px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-family:var(--font-mono);"/></td>
-            <td><input type="number" min="0" step="0.5" value="${p.includedHours}" data-action="set-included-hours" data-artist="${artistId}" data-type="${esc(type)}" style="width:70px;padding:6px 8px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-family:var(--font-mono);"/></td>
-            <td class="u-mono">${money(p.hourlyRate*OVERTIME_MULTIPLIER)}/hr</td>
+            <td data-label="Event Type">${esc(type)}</td>
+            <td data-label="Hourly Rate"><span class="u-mono" style="margin-right:2px;">$</span><input type="number" min="0" step="25" value="${p.hourlyRate}" data-action="set-hourly-rate" data-artist="${artistId}" data-type="${esc(type)}" style="width:90px;padding:6px 8px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-family:var(--font-mono);"/></td>
+            <td data-label="Included Hours"><input type="number" min="0" step="0.5" value="${p.includedHours}" data-action="set-included-hours" data-artist="${artistId}" data-type="${esc(type)}" style="width:70px;padding:6px 8px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-family:var(--font-mono);"/></td>
+            <td data-label="Overtime" class="u-mono">${money(p.hourlyRate*OVERTIME_MULTIPLIER)}/hr</td>
           </tr>`;
         }).join('')}
       </tbody>
@@ -1290,8 +1298,8 @@ function renderFinancialsPage(){
 
   <div class="card card-pad" style="margin-bottom:20px;">
     <div class="section-head"><h2>Monthly Gross Revenue</h2></div>
-    <div style="display:flex;gap:14px;align-items:flex-end;height:120px;">
-      ${monthlyGross.map(m=>`<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;">
+    <div class="fin-chart" style="display:flex;gap:14px;align-items:flex-end;height:120px;">
+      ${monthlyGross.map(m=>`<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;">
         <span class="u-mono" style="font-size:11px;color:var(--ink-2);">${m.val?money(m.val):''}</span>
         <div style="width:100%;max-width:46px;height:${Math.max(4,(m.val/maxMonthly)*80)}px;background:var(--accent);border-radius:4px 4px 0 0;opacity:.85;"></div>
         <span class="u-label">${m.label}</span>
