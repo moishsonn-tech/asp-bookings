@@ -374,12 +374,20 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
   .doc-body{ padding:22px 18px 30px; }
   .doc-parties, .doc-facts, .doc-sign{ grid-template-columns:1fr; gap:14px; }
   .doc-title{ font-size:1.4rem; }
-  .cal-grid{ gap:3px; }
-  .cal-cell{ min-height:64px; padding:4px 3px; gap:2px; }
+  .cal-grid{ gap:3px; grid-auto-rows:1fr; }
+  .cal-cell{ height:64px; padding:4px 3px; gap:2px; overflow:hidden; }
   .cal-date{ font-size:10.5px; }
   .cal-evt{ font-size:9px; padding:1px 3px; }
   .cal-dow{ font-size:9px; }
-  .stat-tile .val{ font-size:1.7rem; }
+  .card-pad{ padding:14px 16px; }
+  .bento{ gap:10px; margin-bottom:14px; }
+  .bento-hero{ padding:18px 18px; gap:14px; }
+  .bento-hero .val{ font-size:1.9rem; }
+  .stat-tile{ padding:14px 16px; gap:4px; }
+  .stat-tile .val{ font-size:1.5rem; }
+  .bento-c .val{ font-size:1.3rem; }
+  .section-head{ margin-bottom:8px; }
+  .section-head h2{ font-size:1.05rem; }
   .bottom-nav{ display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--border); padding:4px max(2px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(2px, env(safe-area-inset-left)); justify-content:space-around; z-index:30; box-sizing:border-box; }
   .bn-item{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:10px; font-weight:700; color:var(--ink-3); padding:8px 2px; min-height:52px; border-radius:10px; flex:1; min-width:0; }
   .bn-item span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
@@ -391,8 +399,10 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
   .newlead-btn{ padding:9px 12px; flex:none; }
   .chip-name{ display:none; }
   .user-chip{ padding:4px; }
-  .cal-cell{ min-height:52px; }
+  .cal-cell{ height:52px; padding:3px 2px; }
   .cal-evt span{ max-width:34px; }
+  .bento-hero .val{ font-size:1.6rem; }
+  .stat-tile .val{ font-size:1.3rem; }
   .bn-item span{ display:none; }
   .bn-item .ico{ width:22px; height:22px; }
   .bn-item{ padding:10px 2px; min-height:52px; }
@@ -413,7 +423,7 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
 .opener-mark.activate i{ animation:openerBar .5s cubic-bezier(.3,1.6,.5,1) forwards, openerGlow .5s ease; }
 @keyframes openerDip{ 0%{transform:scale(1);} 40%{transform:scale(.93);} 100%{transform:scale(1);} }
 @keyframes openerGlow{ 0%{filter:drop-shadow(0 0 0 transparent);} 45%{filter:drop-shadow(0 0 16px #D9A44E);} 100%{filter:drop-shadow(0 0 0 transparent);} }
-.opener-word{ font-family:'ASP Display','Segoe UI',sans-serif; font-weight:600; font-size:2.5rem; letter-spacing:-.01em; color:#F7F2E7; opacity:0; transform:translateY(10px); animation:openerFadeUp .6s ease forwards; animation-delay:.85s; }
+.opener-word{ font-family:var(--font-display); font-weight:600; font-size:2.5rem; letter-spacing:-.01em; color:#F7F2E7; opacity:0; transform:translateY(10px); animation:openerFadeUp .6s ease forwards; animation-delay:.85s; }
 .opener-tag{ font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:#8C8168; opacity:0; animation:openerFadeUp .6s ease forwards; animation-delay:1.05s; }
 @keyframes openerFadeUp{ to{opacity:1; transform:translateY(0);} }
 .opener-skip{ position:absolute; bottom:28px; font-family:-apple-system,sans-serif; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#5c5748; opacity:0; animation:openerFadeUp .5s ease forwards; animation-delay:1.6s; }
