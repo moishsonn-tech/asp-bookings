@@ -162,25 +162,6 @@ input,select,textarea{font-family:inherit; font-size:inherit;}
 .stat-tile .val{ font-family:var(--font-display); font-size:2.1rem; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:-.02em; }
 .stat-tile .sub{ font-size:12px; color:var(--ink-3); }
 
-/* ============ BENTO HERO (dashboard) ============ */
-.bento{
-  display:grid; gap:14px; margin-bottom:20px;
-  grid-template-columns:1.4fr 1fr 1fr; grid-template-rows:auto auto;
-  grid-template-areas:"hero a b" "hero c c";
-}
-.bento-hero{
-  grid-area:hero; padding:24px 26px; display:flex; flex-direction:column; justify-content:space-between; gap:22px;
-  background:var(--accent-wash); color:var(--accent-ink); border:1px solid var(--border); transition:.18s cubic-bezier(.2,.7,.3,1);
-}
-.bento-hero:hover{ transform:translateY(-2px); box-shadow:var(--shadow-md); border-color:var(--border-strong); }
-.bento-hero .u-label{ color:var(--accent-ink); opacity:.75; }
-.bento-hero .val{ font-family:var(--font-display); font-size:2.6rem; font-weight:700; letter-spacing:-.02em; font-variant-numeric:tabular-nums; }
-.bento-hero .sub{ font-size:12.5px; color:var(--accent-ink); opacity:.8; }
-.bento-a{ grid-area:a; } .bento-b{ grid-area:b; } .bento-c{ grid-area:c; display:flex; flex-direction:row; align-items:center; justify-content:space-between; gap:16px; }
-.bento-c .val{ font-size:1.7rem; }
-@media (max-width:860px){ .bento{ grid-template-columns:1fr 1fr; grid-template-areas:"hero hero" "a b" "c c"; } }
-@media (max-width:480px){ .bento{ grid-template-columns:1fr; grid-template-areas:"hero" "a" "b" "c"; } }
-
 .pill{ display:inline-flex; align-items:center; gap:5px; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700; letter-spacing:.02em; white-space:nowrap; }
 .pill-neutral{ background:var(--surface-3); color:var(--ink-2); }
 .pill-warn{ background:var(--warn-wash); color:var(--warn-ink); }
@@ -406,12 +387,8 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
   .cal-evt{ font-size:9px; padding:1px 3px; }
   .cal-dow{ font-size:9px; }
   .card-pad{ padding:14px 16px; }
-  .bento{ gap:10px; margin-bottom:14px; }
-  .bento-hero{ padding:18px 18px; gap:14px; }
-  .bento-hero .val{ font-size:1.9rem; }
   .stat-tile{ padding:14px 16px; gap:4px; }
   .stat-tile .val{ font-size:1.5rem; }
-  .bento-c .val{ font-size:1.3rem; }
   .section-head{ margin-bottom:8px; }
   .section-head h2{ font-size:1.05rem; }
   .bottom-nav{ display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--border); padding:4px max(2px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(2px, env(safe-area-inset-left)); justify-content:space-around; z-index:30; box-sizing:border-box; }
@@ -427,7 +404,6 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
   .user-chip{ padding:4px; }
   .cal-cell{ height:52px; padding:3px 2px; }
   .cal-evt span{ max-width:34px; }
-  .bento-hero .val{ font-size:1.6rem; }
   .stat-tile .val{ font-size:1.3rem; }
   .bn-item span{ display:none; }
   .bn-item .ico{ width:22px; height:22px; }
@@ -1255,7 +1231,6 @@ function renderMgmtDashboard(){
   const open = S.events.filter(e=>['lead','negotiating','contract_sent'].includes(e.status));
   const awaitingBalance = S.events.filter(e=>e.status==='booked' && !e.balanceReceived);
   const upcoming30 = S.events.filter(e=>!isPast(e.date) && daysUntil(e.date)<=30 && ['booked','paid'].includes(e.status));
-  const mtdRevenue = S.events.filter(e=>e.depositReceived && sameMonth(e.depositReceivedDate)).reduce((s,e)=>s+e.commission,0);
   const flightsToBook = S.events.filter(e=>e.flightNeeded && !e.flightBooked && ['booked','paid'].includes(e.status) && !isPast(e.date));
   const conflictPairs = allConflictPairs().filter(([a,b])=>!isPast(a.date)||!isPast(b.date));
   const intlTrips = S.events.filter(e=>isInternational(e) && !e.intlOpportunityDismissed && !isPast(e.date) && ['booked','paid'].includes(e.status)).sort((a,b)=>a.date.localeCompare(b.date));
@@ -1263,17 +1238,11 @@ function renderMgmtDashboard(){
 
   return `
   ${isCEO ? `<h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:16px;">Welcome, CEO</h2>` : ''}
-  <div class="bento">
-    <div class="card bento-hero" style="cursor:pointer;" data-action="nav" data-view="financials">
-      <span class="u-label">MTD ASP Revenue</span>
-      <div><span class="val">${money(mtdRevenue)}</span><br><span class="sub">Booking fees received this month</span></div>
-    </div>
-    <div class="card stat-tile bento-a" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Open Leads</span><span class="val">${open.length}</span><span class="sub">Awaiting contract / deposit</span></div>
-    <div class="card stat-tile bento-b" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Awaiting Balance</span><span class="val">${awaitingBalance.length}</span><span class="sub">Booked, balance not yet in</span></div>
-    <div class="card stat-tile bento-c" style="cursor:pointer;" data-action="nav" data-view="calendar">
-      <div><span class="u-label">Upcoming Gigs · 30 days</span><br><span class="sub">Booked or paid, next 30 days</span></div>
-      <span class="val">${upcoming30.length}</span>
-    </div>
+  <div class="grid stat-row" style="margin-bottom:20px;">
+    <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="calendar"><span class="u-label">Upcoming Gigs · 30 days</span><span class="val">${upcoming30.length}</span><span class="sub">Booked or paid, next 30 days</span></div>
+    <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Open Leads</span><span class="val">${open.length}</span><span class="sub">Awaiting contract / deposit</span></div>
+    <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Awaiting Balance</span><span class="val">${awaitingBalance.length}</span><span class="sub">Booked, balance not yet in</span></div>
+    <div class="card stat-tile"><span class="u-label">Flights Needed</span><span class="val">${flightsToBook.length}</span><span class="sub">Booked, no flight yet</span></div>
   </div>
 
   ${(!isCEO && conflictPairs.length) ? `
@@ -1311,17 +1280,10 @@ function renderMgmtDashboard(){
     </div>
   </div>` : ''}
 
-  <div class="card card-pad" style="margin-bottom:20px;">
-    <div class="section-head"><h2>All-Artist Calendar</h2>
-      <button class="btn btn-sm btn-ghost" data-action="nav" data-view="calendar">Open full calendar ${ICO.chev('r')}</button></div>
-    ${renderCalendarPage(S.events, {compact:true})}
-  </div>
-
   <div class="section-head"><h2>Open Leads</h2><button class="btn btn-sm btn-ghost" data-action="nav" data-view="leads">View all ${ICO.chev('r')}</button></div>
   ${renderEventTable(open.slice(0,6), {showArtist:true})}
   `;
 }
-function sameMonth(iso){ if(!iso) return false; const d=new Date(iso+'T00:00:00'); const n=new Date(); return d.getMonth()===n.getMonth() && d.getFullYear()===n.getFullYear(); }
 function statTile(label, val, sub, view){
   const clickable = view ? `style="cursor:pointer;" data-action="nav" data-view="${view}"` : '';
   return `<div class="card stat-tile" ${clickable}>
