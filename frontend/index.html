@@ -771,12 +771,8 @@ function resetDemo(){ localStorage.removeItem(LS_KEY); S.events = seedAll(); sav
 
 /* ============ THEME PREF ============ */
 const THEME_LS_KEY = 'asp_theme_pref';
-function loadThemePref(){ try{ return localStorage.getItem(THEME_LS_KEY) || 'system'; }catch(e){ return 'system'; } }
-function applyThemePref(pref){
-  if(pref==='light') document.documentElement.dataset.theme = 'light';
-  else if(pref==='dark') document.documentElement.dataset.theme = 'dark';
-  else delete document.documentElement.dataset.theme;
-}
+function loadThemePref(){ try{ return localStorage.getItem(THEME_LS_KEY) || 'light'; }catch(e){ return 'light'; } }
+function applyThemePref(pref){ document.documentElement.dataset.theme = pref==='dark' ? 'dark' : 'light'; }
 let THEME_PREF = loadThemePref();
 applyThemePref(THEME_PREF);
 function setThemePref(pref){
@@ -1137,7 +1133,6 @@ function renderView(){
 /* ============ SETTINGS ============ */
 const THEME_OPTIONS = [
   ['light', 'Light', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>'],
-  ['system', 'Auto', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>'],
   ['dark', 'Dark', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>'],
 ];
 const NOTIFY_ITEMS = [
@@ -1152,8 +1147,7 @@ function renderSettingsPage(){
   const themeIdx = THEME_OPTIONS.findIndex(([k])=>k===THEME_PREF);
   return `
   <div class="card card-pad" style="margin-bottom:20px;">
-    <h3 style="margin-bottom:2px;">Sign-in &amp; Security</h3>
-    <p style="font-size:12px;color:var(--ink-3);margin:0 0 12px;">Passkeys let you sign in with Face ID, Touch ID, or your device PIN — no password to remember or leak.</p>
+    <h3 style="margin-bottom:12px;">Sign-in &amp; Security</h3>
     ${st.passkeys.map(pk=>`<div class="passkey-row">
       <div class="passkey-ico">${ICO.key}</div>
       <div style="flex:1;min-width:0;"><strong style="font-size:13px;">${esc(pk.label)}</strong><br/><span style="font-size:11.5px;color:var(--ink-3);">Added ${fmtDateShort(pk.addedAt)}</span></div>
@@ -1163,8 +1157,7 @@ function renderSettingsPage(){
   </div>
 
   <div class="card card-pad" style="margin-bottom:20px;">
-    <h3 style="margin-bottom:2px;">Connected Accounts</h3>
-    <p style="font-size:12px;color:var(--ink-3);margin:0 0 12px;">Connect your Google Calendar so ${isAdmin?'ASP-booked gigs sync to the office calendar':'your gigs sync to your own calendar'} automatically.</p>
+    <h3 style="margin-bottom:12px;">Connected Accounts</h3>
     <div class="settings-row" style="border-bottom:none;padding-bottom:0;">
       <div><h4>Google Calendar</h4><p>${st.calendarConnected? `Connected as ${esc(st.calendarEmail)}` : 'Not connected'}</p></div>
       ${st.calendarConnected
@@ -1174,8 +1167,7 @@ function renderSettingsPage(){
   </div>
 
   <div class="card card-pad" style="margin-bottom:20px;">
-    <h3 style="margin-bottom:2px;">Notifications</h3>
-    <p style="font-size:12px;color:var(--ink-3);margin:0 0 4px;">${isAdmin? 'Choose which of these you want to hear about.' : 'Choose which of these you want to hear about, and how — in the app, by email, or both.'}</p>
+    <h3 style="margin-bottom:8px;">Notifications</h3>
     ${NOTIFY_ITEMS.map(([key,label,adminSub,artistSub])=>`
     <div class="settings-row">
       <div><h4>${label}</h4><p>${isAdmin?adminSub:artistSub}</p></div>
@@ -1197,7 +1189,7 @@ function renderSettingsPage(){
   <div class="card card-pad" style="margin-bottom:20px;">
     <h3 style="margin-bottom:8px;">Appearance</h3>
     <div class="settings-row" style="border-bottom:none;">
-      <div><h4>Theme</h4><p>Auto matches your device's setting</p></div>
+      <h4>Theme</h4>
       <div class="seg">
         <div class="seg-thumb" style="transform:translateX(${themeIdx*38}px);"></div>
         ${THEME_OPTIONS.map(([k,l,ic])=>`<button class="${k===THEME_PREF?'active':''}" data-action="set-theme" data-theme-pref="${k}" title="${l}">${ic}</button>`).join('')}
