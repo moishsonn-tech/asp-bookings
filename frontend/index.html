@@ -796,12 +796,18 @@ function defaultUserSettings(){
     passkeys: [{id:'pk-'+randInt(1,999999), label:'This device', addedAt: fmtISO(new Date())}],
     calendarConnected: false,
     calendarEmail: '',
-    notify: { newLeads:true, balanceReminders:true, bookingConfirmations:true },
+    notify: {
+      newLeads: {inApp:true, email:false},
+      balanceReminders: {inApp:true, email:false},
+      bookingConfirmations: {inApp:true, email:false},
+    },
   };
 }
 function getUserSettings(userId){
   if(!ALL_SETTINGS[userId]) ALL_SETTINGS[userId] = defaultUserSettings();
-  return ALL_SETTINGS[userId];
+  const st = ALL_SETTINGS[userId];
+  Object.keys(st.notify).forEach(k=>{ if(typeof st.notify[k]==='boolean') st.notify[k] = {inApp: st.notify[k], email:false}; });
+  return st;
 }
 
 /* ============ HELPERS ============ */
@@ -1133,6 +1139,11 @@ const THEME_OPTIONS = [
   ['system', 'Auto', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>'],
   ['dark', 'Dark', '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>'],
 ];
+const NOTIFY_ITEMS = [
+  ['newLeads', 'New leads', 'A new booking request comes in', 'ASP books a new gig for you'],
+  ['balanceReminders', 'Balance reminders', "A client's remaining balance is coming due", "A client's remaining balance is coming due"],
+  ['bookingConfirmations', 'Booking confirmations', 'A gig is signed and officially locked in', 'A gig is signed and officially locked in'],
+];
 function renderSettingsPage(){
   const isAdmin = isAdminUser(S.user);
   const who = isAdmin ? adminById(S.user) : artistById(S.user);
@@ -1162,19 +1173,24 @@ function renderSettingsPage(){
   </div>
 
   <div class="card card-pad" style="margin-bottom:20px;">
-    <h3 style="margin-bottom:8px;">Notifications</h3>
+    <h3 style="margin-bottom:2px;">Notifications</h3>
+    <p style="font-size:12px;color:var(--ink-3);margin:0 0 4px;">${isAdmin? 'Choose which of these you want to hear about.' : 'Choose which of these you want to hear about, and how — in the app, by email, or both.'}</p>
+    ${NOTIFY_ITEMS.map(([key,label,adminSub,artistSub])=>`
     <div class="settings-row">
-      <div><h4>New leads</h4><p>${isAdmin?'A new booking request comes in':'ASP books a new gig for you'}</p></div>
-      <label class="switch"><input type="checkbox" data-action="toggle-notif" data-key="newLeads" ${st.notify.newLeads?'checked':''}/><span class="switch-track"></span></label>
-    </div>
-    <div class="settings-row">
-      <div><h4>Balance reminders</h4><p>A client's remaining balance is coming due</p></div>
-      <label class="switch"><input type="checkbox" data-action="toggle-notif" data-key="balanceReminders" ${st.notify.balanceReminders?'checked':''}/><span class="switch-track"></span></label>
-    </div>
-    <div class="settings-row">
-      <div><h4>Booking confirmations</h4><p>A gig is signed and officially locked in</p></div>
-      <label class="switch"><input type="checkbox" data-action="toggle-notif" data-key="bookingConfirmations" ${st.notify.bookingConfirmations?'checked':''}/><span class="switch-track"></span></label>
-    </div>
+      <div><h4>${label}</h4><p>${isAdmin?adminSub:artistSub}</p></div>
+      ${isAdmin
+        ? `<label class="switch"><input type="checkbox" data-action="toggle-notif" data-key="${key}" data-channel="inApp" ${st.notify[key].inApp?'checked':''}/><span class="switch-track"></span></label>`
+        : `<div style="display:flex;gap:14px;">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <span class="u-label" style="font-size:9px;">In-app</span>
+              <label class="switch"><input type="checkbox" data-action="toggle-notif" data-key="${key}" data-channel="inApp" ${st.notify[key].inApp?'checked':''}/><span class="switch-track"></span></label>
+            </div>
+            <div style="display:flex;flex-direction:column;align-items:center;gap:4px;">
+              <span class="u-label" style="font-size:9px;">Email</span>
+              <label class="switch"><input type="checkbox" data-action="toggle-notif" data-key="${key}" data-channel="email" ${st.notify[key].email?'checked':''}/><span class="switch-track"></span></label>
+            </div>
+          </div>`}
+    </div>`).join('')}
   </div>
 
   <div class="card card-pad" style="margin-bottom:20px;">
@@ -2512,7 +2528,7 @@ function bindGlobal(){
       case 'dismiss-intl': { const ev=getEvent(id); ev.intlOpportunityDismissed=true; saveEvents(); toast('Dismissed.', 'system'); render(); break; }
       case 'reset-demo': if(confirm('Reset all demo data back to the seeded example set?')) resetDemo(); break;
       case 'set-theme': setThemePref(t.getAttribute('data-theme-pref')); break;
-      case 'toggle-notif': { const st=getUserSettings(S.user); const key=t.getAttribute('data-key'); st.notify[key]=!st.notify[key]; saveAllSettings(); render(); break; }
+      case 'toggle-notif': { const st=getUserSettings(S.user); const key=t.getAttribute('data-key'); const channel=t.getAttribute('data-channel')||'inApp'; st.notify[key][channel]=!st.notify[key][channel]; saveAllSettings(); render(); break; }
       case 'add-passkey': { const st=getUserSettings(S.user); const n=st.passkeys.length+1; st.passkeys.push({id:'pk-'+randInt(1,999999), label:`Passkey ${n}`, addedAt: fmtISO(new Date())}); saveAllSettings(); toast('Passkey added.', 'success'); render(); break; }
       case 'remove-passkey': { const st=getUserSettings(S.user); if(st.passkeys.length>1){ st.passkeys = st.passkeys.filter(pk=>pk.id!==id); saveAllSettings(); toast('Passkey removed.', 'system'); render(); } break; }
       case 'connect-calendar': { const st=getUserSettings(S.user); const who=isAdminUser(S.user)?adminById(S.user):artistById(S.user); st.calendarConnected=true; st.calendarEmail=who.email; saveAllSettings(); toast('Google Calendar connected.', 'success'); render(); break; }
