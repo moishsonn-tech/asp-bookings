@@ -1096,6 +1096,7 @@ function renderBottomNav(isAdmin){
 }
 function renderMobileMenu(isAdmin){
   const items = isAdmin ? MGMT_NAV_ITEMS : ARTIST_NAV_ITEMS;
+  const who = isAdmin ? adminById(S.user) : artistById(S.user);
   return `<div class="overlay left" data-action="mobilemenu-close">
     <div class="mobile-menu-panel" data-stop>
       <div style="display:flex;align-items:center;justify-content:space-between;">
@@ -1107,7 +1108,7 @@ function renderMobileMenu(isAdmin){
         <a href="#" class="rail-link ${isNavActive('settings')?'active':''}" data-action="nav" data-view="settings">${ICO.settings}Settings</a>
       </div>
       <div class="rail-foot">
-        <button class="btn btn-ghost btn-block" data-action="logout" style="justify-content:flex-start;font-weight:600;color:var(--ink-3);">${ICO.logout} Switch user</button>
+        <span class="avatar" data-action="logout" title="Switch user" data-slot="${isAdmin?'0':who.slot}" style="width:32px;height:32px;font-size:11px;cursor:pointer;${isAdmin?'background:var(--ink);':''}">${who.initials}</span>
         <div style="padding:10px 10px 0;font-size:11px;color:var(--ink-3);">${APP_VERSION}</div>
       </div>
     </div>
@@ -1726,6 +1727,7 @@ function renderArtistDashboard(artistId){
   const next = upcoming[0];
   const ytd = evs.filter(e=>e.balanceReceived && new Date(e.balanceReceivedDate).getFullYear()===new Date().getFullYear()).reduce((s,e)=>s+e.balance,0);
   return `
+  <h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:16px;">Welcome, ${esc(a.name.split(' ')[0])}</h2>
   <div class="grid stat-row" style="margin-bottom:20px;">
     ${statTile('Upcoming Gigs', upcoming.length, 'Booked & confirmed')}
     ${statTile('Next Gig', next? `${daysUntil(next.date)}d`: '—', next? fmtDateShort(next.date): 'Nothing scheduled')}
