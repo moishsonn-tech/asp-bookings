@@ -131,7 +131,7 @@ input,select,textarea{font-family:inherit; font-size:inherit;}
 .rail-link:hover .ico{ transform:scale(1.08); }
 .rail-link.active{ background:var(--accent); color:#fff; box-shadow:0 1px 2px rgba(20,20,26,.12),0 6px 16px -6px var(--accent); }
 .rail-foot{ margin-top:auto; border-top:1px solid var(--border); padding-top:12px; }
-.mobile-menu-panel{ width:250px; max-width:80vw; height:100%; background:var(--surface); display:flex; flex-direction:column; padding:18px 14px; gap:22px; animation:slideinleft .2s ease; }
+.mobile-menu-panel{ width:250px; max-width:80vw; height:100%; height:100dvh; background:var(--surface); display:flex; flex-direction:column; padding:18px 14px max(18px, env(safe-area-inset-bottom)); gap:22px; animation:slideinleft .2s ease; overflow-y:auto; }
 @keyframes slideinleft{ from{ transform:translateX(-100%); } to{ transform:translateX(0); } }
 .main{ flex:1; min-width:0; display:flex; flex-direction:column; }
 .topbar{ display:flex; align-items:center; justify-content:space-between; gap:16px; padding:16px 28px; border-bottom:1px solid var(--border); background:color-mix(in srgb, var(--page) 78%, transparent); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); position:sticky; top:0; z-index:5; }
@@ -360,8 +360,9 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
   .hamburger-btn{ display:inline-flex; }
   .artist-top-tabs{ display:none; }
   .user-chip{ display:none; }
-  .dash-calendar{ display:none; }
-  .stat-row{ grid-template-columns:repeat(2,1fr); }
+  .stat-row{ display:flex; grid-template-columns:none; overflow-x:auto; gap:10px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
+  .stat-row::-webkit-scrollbar{ display:none; }
+  .stat-row > *{ flex:0 0 auto; min-width:152px; scroll-snap-align:start; }
   .table-cards{ overflow-x:visible; }
   .timeline{ overflow-x:visible; gap:0; }
   .tl-step{ min-width:0; flex:1; gap:4px; }
@@ -394,7 +395,7 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
   .stat-tile .val{ font-size:1.5rem; }
   .section-head{ margin-bottom:8px; }
   .section-head h2{ font-size:1.05rem; }
-  .bottom-nav{ display:flex; position:fixed; bottom:0; left:0; right:0; background:var(--surface); border-top:1px solid var(--border); padding:4px max(2px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(2px, env(safe-area-inset-left)); justify-content:space-around; z-index:30; box-sizing:border-box; }
+  .bottom-nav{ display:flex; position:fixed; left:max(12px, env(safe-area-inset-left)); right:max(12px, env(safe-area-inset-right)); bottom:max(12px, env(safe-area-inset-bottom)); border-radius:24px; background:color-mix(in srgb, var(--page) 78%, transparent); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid var(--border); box-shadow:0 10px 30px -10px rgba(20,20,26,.28), 0 2px 10px rgba(20,20,26,.08); padding:4px 6px; justify-content:space-around; z-index:30; box-sizing:border-box; }
   .bn-item{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:10px; font-weight:700; color:var(--ink-3); padding:8px 2px; min-height:52px; border-radius:10px; flex:1; min-width:0; }
   .bn-item span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .bn-item.active{ color:var(--accent); }
@@ -1035,7 +1036,7 @@ function pageTitle(){
   const t = {
     dashboard:'Dashboard', calendar:'Calendar', leads:'Open Leads', artists:'Artists', financials:'Financials', projects:'Projects', pricing:'Pricing',
     artist_detail: artistById(S.artistDetailId)?.name || '',
-    a_dashboard:'My Dashboard', a_gigs:'My Gigs', a_financials:'Financials', a_projects:'My Projects', settings:'Settings',
+    a_dashboard:'My Dashboard', a_calendar:'Calendar', a_gigs:'My Gigs', a_financials:'Financials', a_projects:'My Projects', settings:'Settings',
   };
   return t[S.view] || 'ASP Bookings';
 }
@@ -1056,7 +1057,7 @@ const MGMT_NAV_ITEMS = [
   ['artists','Artists',ICO.artists], /* ['projects','Projects',ICO.kanban], -- hidden until real projects are in use, see asp_bookings_project memory */ ['pricing','Pricing',ICO.tag], ['financials','Financials',ICO.money],
 ];
 const ARTIST_NAV_ITEMS = [
-  ['a_dashboard','Dashboard',ICO.dash], ['a_gigs','My Gigs',ICO.leads], ['a_financials','Financials',ICO.money], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
+  ['a_dashboard','Dashboard',ICO.dash], ['a_calendar','Calendar',ICO.cal], ['a_gigs','My Gigs',ICO.leads], ['a_financials','Financials',ICO.money], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
 ];
 const APP_VERSION = 'v1.0.0';
 const OVERTIME_PER_HALF_HOUR = 250;
@@ -1128,6 +1129,7 @@ function renderView(){
     if(S.view==='pricing') return renderPricingPage();
   } else {
     if(S.view==='a_dashboard') return renderArtistDashboard(S.user);
+    if(S.view==='a_calendar') return renderCalendarPage(eventsFor(S.user), {noLegend:true, singleArtist:true});
     if(S.view==='a_gigs') return renderArtistGigs(S.user);
     if(S.view==='a_financials') return renderArtistFinancials(S.user);
     if(S.view==='a_projects') return renderArtistProjects(S.user);
@@ -1726,12 +1728,11 @@ function renderArtistDashboard(artistId){
   return `
   <h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:16px;">Welcome, ${esc(a.name.split(' ')[0])}</h2>
   <div class="grid stat-row" style="margin-bottom:20px;">
-    ${statTile('Upcoming Gigs', upcoming.length, 'Booked & confirmed')}
-    ${statTile('Next Gig', next? `${daysUntil(next.date)}d`: '—', next? fmtDateShort(next.date): 'Nothing scheduled')}
+    ${statTile('Upcoming Gigs', upcoming.length, 'Booked & confirmed', 'a_calendar')}
+    ${statTile('Next Gig', next? `${daysUntil(next.date)}d`: '—', next? fmtDateShort(next.date): 'Nothing scheduled', 'a_calendar')}
     ${statTile('YTD Payout', money(ytd), 'Received via Zelle', 'a_financials')}
     ${statTile('Flights Pending', evs.filter(e=>e.flightNeeded&&!e.flightBooked&&!isPast(e.date)).length, 'Awaiting bookkeeping')}
   </div>
-  <div class="card card-pad dash-calendar">${renderCalendarPage(evs, {noLegend:true, singleArtist:true})}</div>
   `;
 }
 function renderArtistFinancials(artistId){
