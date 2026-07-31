@@ -1,7 +1,7 @@
 <meta charset="utf-8" />
 <title>ASP Bookings — Mockup</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="theme-color" content="#C8952E" />
+<meta name="theme-color" content="#4C6FA5" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 <meta name="apple-mobile-web-app-title" content="ASP Bookings" />
@@ -14,7 +14,7 @@
   --page:#EEEEF1; --surface:#FFFFFF; --surface-2:#F8F8FA; --surface-3:#E6E6EA;
   --ink:#17171A; --ink-2:#67676D; --ink-3:#9A9AA1;
   --border:#E1E1E6; --border-strong:#D1D1D8;
-  --accent:#C8952E; --accent-hover:#AD7E22; --accent-wash:#F2E7CE; --accent-ink:#7A5518;
+  --accent:#4C6FA5; --accent-hover:#3D5C8C; --accent-wash:#E4EAF3; --accent-ink:#33517A;
   --good:#1F8A54; --good-wash:#E5F5EC; --good-ink:#146B3F;
   --warn:#C6860B; --warn-wash:#FFF2D6; --warn-ink:#8F5E0A;
   --crit:#D64444; --crit-wash:#FDE9E9; --crit-ink:#A32E2E;
@@ -33,7 +33,7 @@
     --page:#14161C; --surface:#1C2029; --surface-2:#232733; --surface-3:#2B303D;
     --ink:#F5F4EF; --ink-2:#C2C4CC; --ink-3:#8C8F99;
     --border:#333947; --border-strong:#414858;
-    --accent:#E6B85C; --accent-hover:#F0C878; --accent-wash:#463519; --accent-ink:#F0D18F;
+    --accent:#7FA0D1; --accent-hover:#93B0DA; --accent-wash:#24344A; --accent-ink:#B9CEEA;
     --good:#3CC989; --good-wash:#173420; --good-ink:#8CEBB8;
     --warn:#F0B94A; --warn-wash:#3F2F10; --warn-ink:#F5CE7E;
     --crit:#F07A7A; --crit-wash:#3F1C1C; --crit-ink:#F5A8A8;
@@ -46,7 +46,7 @@
   --page:#14161C; --surface:#1C2029; --surface-2:#232733; --surface-3:#2B303D;
   --ink:#F5F4EF; --ink-2:#C2C4CC; --ink-3:#8C8F99;
   --border:#333947; --border-strong:#414858;
-  --accent:#E6B85C; --accent-hover:#F0C878; --accent-wash:#463519; --accent-ink:#F0D18F;
+  --accent:#7FA0D1; --accent-hover:#93B0DA; --accent-wash:#24344A; --accent-ink:#B9CEEA;
   --good:#3CC989; --good-wash:#173420; --good-ink:#8CEBB8;
   --warn:#F0B94A; --warn-wash:#3F2F10; --warn-ink:#F5CE7E;
   --crit:#F07A7A; --crit-wash:#3F1C1C; --crit-ink:#F5A8A8;
@@ -58,7 +58,7 @@
   --page:#EEEEF1; --surface:#FFFFFF; --surface-2:#F8F8FA; --surface-3:#E6E6EA;
   --ink:#17171A; --ink-2:#67676D; --ink-3:#9A9AA1;
   --border:#E1E1E6; --border-strong:#D1D1D8;
-  --accent:#C8952E; --accent-hover:#AD7E22; --accent-wash:#F2E7CE; --accent-ink:#7A5518;
+  --accent:#4C6FA5; --accent-hover:#3D5C8C; --accent-wash:#E4EAF3; --accent-ink:#33517A;
   --good:#1F8A54; --good-wash:#E5F5EC; --good-ink:#146B3F;
   --warn:#C6860B; --warn-wash:#FFF2D6; --warn-ink:#8F5E0A;
   --crit:#D64444; --crit-wash:#FDE9E9; --crit-ink:#A32E2E;
@@ -360,9 +360,8 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
   .hamburger-btn{ display:inline-flex; }
   .artist-top-tabs{ display:none; }
   .user-chip{ display:none; }
-  .stat-row{ display:flex; grid-template-columns:none; overflow-x:auto; gap:10px; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; padding-bottom:2px; }
-  .stat-row::-webkit-scrollbar{ display:none; }
-  .stat-row > *{ flex:0 0 auto; min-width:152px; scroll-snap-align:start; }
+  .stat-row{ display:flex; flex-direction:column; grid-template-columns:none; gap:10px; }
+  .stat-row > *{ width:100%; min-width:0; }
   .table-cards{ overflow-x:visible; }
   .timeline{ overflow-x:visible; gap:0; }
   .tl-step{ min-width:0; flex:1; gap:4px; }
@@ -395,10 +394,10 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
   .stat-tile .val{ font-size:1.5rem; }
   .section-head{ margin-bottom:8px; }
   .section-head h2{ font-size:1.05rem; }
-  .bottom-nav{ display:flex; position:fixed; left:max(12px, env(safe-area-inset-left)); right:max(12px, env(safe-area-inset-right)); bottom:max(12px, env(safe-area-inset-bottom)); border-radius:24px; background:color-mix(in srgb, var(--page) 78%, transparent); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid var(--border); box-shadow:0 10px 30px -10px rgba(20,20,26,.28), 0 2px 10px rgba(20,20,26,.08); padding:4px 6px; justify-content:space-around; z-index:30; box-sizing:border-box; }
-  .bn-item{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:10px; font-weight:700; color:var(--ink-3); padding:8px 2px; min-height:52px; border-radius:10px; flex:1; min-width:0; }
+  .bottom-nav{ display:flex; position:fixed; left:max(12px, env(safe-area-inset-left)); right:max(12px, env(safe-area-inset-right)); bottom:max(12px, env(safe-area-inset-bottom)); border-radius:32px; background:color-mix(in srgb, var(--page) 78%, transparent); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid var(--border); box-shadow:0 10px 30px -10px rgba(20,20,26,.28), 0 2px 10px rgba(20,20,26,.08); padding:4px 6px; justify-content:space-around; z-index:30; box-sizing:border-box; }
+  .bn-item{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font-size:10px; font-weight:700; color:var(--ink-3); padding:8px 2px; min-height:52px; border-radius:22px; flex:1; min-width:0; }
   .bn-item span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .bn-item.active{ color:var(--accent); }
+  .bn-item.active .ico{ filter:drop-shadow(0 3px 6px var(--accent)) drop-shadow(0 0 1px var(--accent)); }
   .bn-item[data-view="projects"], .bn-item[data-view="a_projects"], .bn-item[data-view="pricing"]{ display:none; }
 }
 @media (max-width: 480px){
@@ -415,10 +414,10 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
 }
 
 /* ============ OPENER ============ */
-#opener{ position:fixed; inset:0; z-index:200; background:#15110A; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; transition:transform .85s cubic-bezier(.76,0,.24,1), opacity .5s ease .3s; cursor:pointer; }
+#opener{ position:fixed; inset:0; z-index:200; background:#12151C; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; transition:transform .85s cubic-bezier(.76,0,.24,1), opacity .5s ease .3s; cursor:pointer; }
 #opener.leaving{ transform:translateY(-100%); }
 .opener-mark{ display:flex; align-items:flex-end; gap:7px; height:56px; position:relative; }
-.opener-mark i{ display:block; width:9px; border-radius:5px; background:#D9A44E; transform:scaleY(0); transform-origin:bottom; animation:openerBar .5s cubic-bezier(.3,1.6,.5,1) forwards; }
+.opener-mark i{ display:block; width:9px; border-radius:5px; background:#7FA0D1; transform:scaleY(0); transform-origin:bottom; animation:openerBar .5s cubic-bezier(.3,1.6,.5,1) forwards; }
 .opener-mark i:nth-child(1){height:40%; animation-delay:.15s;}
 .opener-mark i:nth-child(2){height:100%; animation-delay:.25s;}
 .opener-mark i:nth-child(3){height:65%; animation-delay:.35s;}
@@ -428,11 +427,11 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
 .opener-mark.activate{ animation:openerDip .4s ease; }
 .opener-mark.activate i{ animation:openerBar .5s cubic-bezier(.3,1.6,.5,1) forwards, openerGlow 1.4s ease; }
 @keyframes openerDip{ 0%{transform:scale(1);} 40%{transform:scale(.93);} 100%{transform:scale(1);} }
-@keyframes openerGlow{ 0%{filter:drop-shadow(0 0 0 transparent);} 20%{filter:drop-shadow(0 0 18px #D9A44E);} 55%{filter:drop-shadow(0 0 16px #D9A44E);} 100%{filter:drop-shadow(0 0 0 transparent);} }
-.opener-word{ font-family:var(--font-display); font-weight:600; font-size:2.5rem; letter-spacing:-.01em; color:#F7F2E7; opacity:0; transform:translateY(10px); animation:openerFadeUp .6s ease forwards; animation-delay:.85s; }
-.opener-tag{ font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:#8C8168; opacity:0; animation:openerFadeUp .6s ease forwards; animation-delay:1.05s; }
+@keyframes openerGlow{ 0%{filter:drop-shadow(0 0 0 transparent);} 20%{filter:drop-shadow(0 0 18px #7FA0D1);} 55%{filter:drop-shadow(0 0 16px #7FA0D1);} 100%{filter:drop-shadow(0 0 0 transparent);} }
+.opener-word{ font-family:var(--font-display); font-weight:600; font-size:2.5rem; letter-spacing:-.01em; color:#F1F3F7; opacity:0; transform:translateY(10px); animation:openerFadeUp .6s ease forwards; animation-delay:.85s; }
+.opener-tag{ font-family:-apple-system,sans-serif; font-size:11px; letter-spacing:.28em; text-transform:uppercase; color:#7C8698; opacity:0; animation:openerFadeUp .6s ease forwards; animation-delay:1.05s; }
 @keyframes openerFadeUp{ to{opacity:1; transform:translateY(0);} }
-.opener-skip{ position:absolute; bottom:28px; font-family:-apple-system,sans-serif; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#5c5748; opacity:0; animation:openerFadeUp .5s ease forwards; animation-delay:1.6s; }
+.opener-skip{ position:absolute; bottom:28px; font-family:-apple-system,sans-serif; font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; color:#5C6270; opacity:0; animation:openerFadeUp .5s ease forwards; animation-delay:1.6s; }
 @media (prefers-reduced-motion: reduce){ #opener{ display:none; } }
 </style>
 
@@ -478,6 +477,7 @@ const ICO = {
   settings:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
   menu:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
   key:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>',
+  mic:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/><path d="M8 22h8"/></svg>',
 };
 
 /* ============ SEED DATA ============ */
@@ -1057,7 +1057,7 @@ const MGMT_NAV_ITEMS = [
   ['artists','Artists',ICO.artists], /* ['projects','Projects',ICO.kanban], -- hidden until real projects are in use, see asp_bookings_project memory */ ['pricing','Pricing',ICO.tag], ['financials','Financials',ICO.money],
 ];
 const ARTIST_NAV_ITEMS = [
-  ['a_dashboard','Dashboard',ICO.dash], ['a_calendar','Calendar',ICO.cal], ['a_gigs','My Gigs',ICO.leads], ['a_financials','Financials',ICO.money], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
+  ['a_dashboard','Dashboard',ICO.dash], ['a_calendar','Calendar',ICO.cal], ['a_gigs','My Gigs',ICO.mic], ['a_financials','Financials',ICO.money], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
 ];
 const APP_VERSION = 'v1.0.0';
 const OVERTIME_PER_HALF_HOUR = 250;
@@ -1109,7 +1109,11 @@ function renderMobileMenu(isAdmin){
         <a href="#" class="rail-link ${isNavActive('settings')?'active':''}" data-action="nav" data-view="settings">${ICO.settings}Settings</a>
       </div>
       <div class="rail-foot">
-        <span class="avatar" data-action="logout" title="Switch user" data-slot="${isAdmin?'0':who.slot}" style="width:32px;height:32px;font-size:11px;cursor:pointer;${isAdmin?'background:var(--ink);':''}">${who.initials}</span>
+        <div style="display:flex;align-items:center;gap:10px;padding:4px 10px 12px;">
+          <span class="avatar" data-slot="${isAdmin?'0':who.slot}" style="width:32px;height:32px;font-size:11px;${isAdmin?'background:var(--ink);':''}">${who.initials}</span>
+          <span style="font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(who.name)}</span>
+        </div>
+        <a href="#" class="rail-link" data-action="logout" style="color:var(--crit);">${ICO.logout} Log Out</a>
         <div style="padding:10px 10px 0;font-size:11px;color:var(--ink-3);">${APP_VERSION}</div>
       </div>
     </div>
@@ -1127,6 +1131,8 @@ function renderView(){
     if(S.view==='financials') return renderFinancialsPage();
     if(S.view==='projects') return renderProjectsBoard();
     if(S.view==='pricing') return renderPricingPage();
+    if(S.view==='international') return renderInternationalPage();
+    if(S.view==='flights') return renderFlightsPage();
   } else {
     if(S.view==='a_dashboard') return renderArtistDashboard(S.user);
     if(S.view==='a_calendar') return renderCalendarPage(eventsFor(S.user), {noLegend:true, singleArtist:true});
@@ -1243,6 +1249,12 @@ function renderAccountChooser(){
 }
 
 /* ============ MGMT DASHBOARD ============ */
+function renderWelcomeHeader(name){
+  return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
+    <span class="mark" style="height:22px;"><i></i><i></i><i></i><i></i><i></i></span>
+    <h2 style="font-family:var(--font-display);font-size:1.4rem;margin:0;">Welcome, ${esc(name)}</h2>
+  </div>`;
+}
 function renderMgmtDashboard(){
   const open = S.events.filter(e=>['lead','negotiating','contract_sent'].includes(e.status));
   const awaitingBalance = S.events.filter(e=>e.status==='booked' && !e.balanceReceived);
@@ -1253,12 +1265,15 @@ function renderMgmtDashboard(){
   const isCEO = S.user==='admin_ceo';
 
   return `
-  ${isCEO ? `<h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:16px;">Welcome, CEO</h2>` : ''}
+  ${renderWelcomeHeader(adminById(S.user).name)}
   <div class="grid stat-row" style="margin-bottom:20px;">
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="calendar"><span class="u-label">Upcoming Gigs · 30 days</span><span class="val">${upcoming30.length}</span><span class="sub">Booked or paid, next 30 days</span></div>
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Open Leads</span><span class="val">${open.length}</span><span class="sub">Awaiting contract / deposit</span></div>
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Awaiting Balance</span><span class="val">${awaitingBalance.length}</span><span class="sub">Booked, balance not yet in</span></div>
-    <div class="card stat-tile"><span class="u-label">Flights Needed</span><span class="val">${flightsToBook.length}</span><span class="sub">Booked, no flight yet</span></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+    ${statTile('International Opportunities', intlTrips.length, 'Artist traveling — worth adding nearby bookings', 'international')}
+    ${statTile('Flights To Book', flightsToBook.length, 'Booked, no flight yet', 'flights')}
   </div>
 
   ${(!isCEO && conflictPairs.length) ? `
@@ -1272,30 +1287,6 @@ function renderMgmtDashboard(){
     </div>
   </div>` : ''}
 
-  ${(!isCEO && intlTrips.length) ? `
-  <div class="card card-pad" style="margin-bottom:20px;border-color:var(--accent);background:var(--accent-wash);">
-    <div style="display:flex;align-items:center;gap:8px;color:var(--accent-ink);font-weight:700;font-size:13px;">${ICO.plane} International trip opportunities (${intlTrips.length})</div>
-    <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;">
-      ${intlTrips.map(e=>{const ae=artistById(e.artistId);
-        return `<div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;color:var(--accent-ink);">
-        <span style="cursor:pointer;" data-action="open-event" data-id="${e.id}"><strong>${esc(ae.name)}</strong> — ${esc(e.city)}, ${esc(e.state)}, ${fmtDateShort(e.date)}</span>
-        <span style="display:flex;align-items:center;gap:10px;">
-          <span style="cursor:pointer;text-decoration:underline;" data-action="open-event" data-id="${e.id}">View</span>
-          <button class="icon-btn" data-action="dismiss-intl" data-id="${e.id}" title="Dismiss" style="width:22px;height:22px;color:var(--accent-ink);">${ICO.x}</button>
-        </span></div>`;}).join('')}
-    </div>
-  </div>` : ''}
-
-  ${(!isCEO && flightsToBook.length) ? `
-  <div class="card card-pad" style="margin-bottom:20px;border-color:var(--warn);background:var(--warn-wash);">
-    <div style="display:flex;align-items:center;gap:8px;color:var(--warn-ink);font-weight:700;font-size:13px;">${ICO.plane} Flights to book (${flightsToBook.length})</div>
-    <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px;">
-      ${flightsToBook.map(e=>`<div style="display:flex;justify-content:space-between;align-items:center;font-size:12.5px;cursor:pointer;" data-action="open-event" data-id="${e.id}">
-        <span><strong>${esc(artistById(e.artistId).name)}</strong> — ${esc(e.type)}, ${fmtDateShort(e.date)}</span>
-        <span class="pill pill-warn">Needs flight</span></div>`).join('')}
-    </div>
-  </div>` : ''}
-
   <div class="section-head"><h2>Open Leads</h2><button class="btn btn-sm btn-ghost" data-action="nav" data-view="leads">View all ${ICO.chev('r')}</button></div>
   ${renderEventTable(open.slice(0,6), {showArtist:true})}
   `;
@@ -1304,6 +1295,34 @@ function statTile(label, val, sub, view){
   const clickable = view ? `style="cursor:pointer;" data-action="nav" data-view="${view}"` : '';
   return `<div class="card stat-tile" ${clickable}>
     <span class="u-label">${label}</span><span class="val">${val}</span><span class="sub">${sub}</span></div>`;
+}
+function subpageBack(){
+  return `<button class="icon-btn" data-action="nav" data-view="dashboard" title="Back to Dashboard" style="margin-bottom:14px;">${ICO.chev('l')}</button>`;
+}
+function renderInternationalPage(){
+  const intlTrips = S.events.filter(e=>isInternational(e) && !e.intlOpportunityDismissed && !isPast(e.date) && ['booked','paid'].includes(e.status)).sort((a,b)=>a.date.localeCompare(b.date));
+  return `
+  ${subpageBack()}
+  <div class="section-head"><h2>International Opportunities (${intlTrips.length})</h2></div>
+  ${!intlTrips.length ? `<div class="card empty">Nothing here yet.</div>` : `
+  <div class="card card-pad" style="display:flex;flex-direction:column;gap:10px;">
+    ${intlTrips.map(e=>{const ae=artistById(e.artistId);
+      return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px;padding:6px 0;border-bottom:1px solid var(--border);">
+      <span style="cursor:pointer;" data-action="open-event" data-id="${e.id}"><strong>${esc(ae.name)}</strong> — ${esc(e.city)}, ${esc(e.state)}, ${fmtDateShort(e.date)}</span>
+      <span style="display:flex;align-items:center;gap:10px;flex:none;">
+        <span style="cursor:pointer;text-decoration:underline;" data-action="open-event" data-id="${e.id}">View</span>
+        <button class="icon-btn" data-action="dismiss-intl" data-id="${e.id}" title="Dismiss" style="width:22px;height:22px;">${ICO.x}</button>
+      </span></div>`;}).join('')}
+  </div>`}
+  `;
+}
+function renderFlightsPage(){
+  const flightsToBook = S.events.filter(e=>e.flightNeeded && !e.flightBooked && ['booked','paid'].includes(e.status) && !isPast(e.date)).sort((a,b)=>a.date.localeCompare(b.date));
+  return `
+  ${subpageBack()}
+  <div class="section-head"><h2>Flights To Book (${flightsToBook.length})</h2></div>
+  ${renderEventTable(flightsToBook, {showArtist:true})}
+  `;
 }
 
 /* ============ CALENDAR ============ */
@@ -1726,7 +1745,7 @@ function renderArtistDashboard(artistId){
   const next = upcoming[0];
   const ytd = evs.filter(e=>e.balanceReceived && new Date(e.balanceReceivedDate).getFullYear()===new Date().getFullYear()).reduce((s,e)=>s+e.balance,0);
   return `
-  <h2 style="font-family:var(--font-display);font-size:1.4rem;margin-bottom:16px;">Welcome, ${esc(a.name.split(' ')[0])}</h2>
+  ${renderWelcomeHeader(a.name.split(' ')[0])}
   <div class="grid stat-row" style="margin-bottom:20px;">
     ${statTile('Upcoming Gigs', upcoming.length, 'Booked & confirmed', 'a_calendar')}
     ${statTile('Next Gig', next? `${daysUntil(next.date)}d`: '—', next? fmtDateShort(next.date): 'Nothing scheduled', 'a_calendar')}
@@ -2504,8 +2523,8 @@ function bindGlobal(){
     if(action==='overlay-close' && e.target===t){ closeSheet(); return; }
     if(action==='overlay-close') return;
     switch(action){
-      case 'login': S.user = t.getAttribute('data-user'); S.view = isAdminUser(S.user)?'dashboard':'a_dashboard'; S.showChooser=false; render(); break;
-      case 'logout': S.user=null; S.eventId=null; S.showNewLead=false; S.showChooser=false; render(); break;
+      case 'login': S.user = t.getAttribute('data-user'); S.view = isAdminUser(S.user)?'dashboard':'a_dashboard'; S.showChooser=false; S.showMobileMenu=false; render(); break;
+      case 'logout': S.user=null; S.eventId=null; S.showNewLead=false; S.showChooser=false; S.showMobileMenu=false; render(); break;
       case 'show-chooser': S.showChooser=true; render(); break;
       case 'hide-chooser': S.showChooser=false; render(); break;
       case 'open-mobile-menu': S.showMobileMenu=true; render(); break;
