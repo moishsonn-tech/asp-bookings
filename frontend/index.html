@@ -1,3 +1,4 @@
+<meta charset="utf-8" />
 <title>ASP Bookings — Mockup</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <meta name="theme-color" content="#C8952E" />
@@ -357,7 +358,9 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
   .topbar{ padding:10px 12px; gap:8px; }
   .topbar h1{ font-size:1.2rem; }
   .hamburger-btn{ display:inline-flex; }
-  .artist-settings-btn{ display:none; }
+  .artist-top-tabs{ display:none; }
+  .user-chip{ display:none; }
+  .dash-calendar{ display:none; }
   .stat-row{ grid-template-columns:repeat(2,1fr); }
   .table-cards{ overflow-x:visible; }
   .timeline{ overflow-x:visible; gap:0; }
@@ -1032,7 +1035,7 @@ function pageTitle(){
   const t = {
     dashboard:'Dashboard', calendar:'Calendar', leads:'Open Leads', artists:'Artists', financials:'Financials', projects:'Projects', pricing:'Pricing',
     artist_detail: artistById(S.artistDetailId)?.name || '',
-    a_dashboard:'My Dashboard', a_gigs:'My Gigs', a_projects:'My Projects', settings:'Settings',
+    a_dashboard:'My Dashboard', a_gigs:'My Gigs', a_financials:'Financials', a_projects:'My Projects', settings:'Settings',
   };
   return t[S.view] || 'ASP Bookings';
 }
@@ -1053,7 +1056,7 @@ const MGMT_NAV_ITEMS = [
   ['artists','Artists',ICO.artists], /* ['projects','Projects',ICO.kanban], -- hidden until real projects are in use, see asp_bookings_project memory */ ['pricing','Pricing',ICO.tag], ['financials','Financials',ICO.money],
 ];
 const ARTIST_NAV_ITEMS = [
-  ['a_dashboard','Dashboard',ICO.dash], ['a_gigs','My Gigs',ICO.leads], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
+  ['a_dashboard','Dashboard',ICO.dash], ['a_gigs','My Gigs',ICO.leads], ['a_financials','Financials',ICO.money], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
 ];
 const APP_VERSION = 'v1.0.0';
 const OVERTIME_PER_HALF_HOUR = 250;
@@ -1074,7 +1077,8 @@ function renderRail(){
 }
 
 function renderArtistTopTabs(){
-  return `<div class="topbar" style="border-bottom:none;padding-bottom:0;">
+  return `<div class="artist-top-tabs">
+  <div class="topbar" style="border-bottom:none;padding-bottom:0;">
     <div class="wordmark"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP</div>
     <button class="icon-btn artist-settings-btn" data-action="nav" data-view="settings" title="Settings">${ICO.settings}</button>
   </div>
@@ -1082,6 +1086,7 @@ function renderArtistTopTabs(){
     <div class="tabbar">
       ${ARTIST_NAV_ITEMS.map(([v,l])=>`<a href="#" class="tab ${isNavActive(v)?'active':''}" data-action="nav" data-view="${v}">${l}</a>`).join('')}
     </div>
+  </div>
   </div>`;
 }
 function renderBottomNav(isAdmin){
@@ -1091,7 +1096,6 @@ function renderBottomNav(isAdmin){
   </div>`;
 }
 function renderMobileMenu(isAdmin){
-  const items = isAdmin ? MGMT_NAV_ITEMS : ARTIST_NAV_ITEMS;
   const who = isAdmin ? adminById(S.user) : artistById(S.user);
   return `<div class="overlay left" data-action="mobilemenu-close">
     <div class="mobile-menu-panel" data-stop>
@@ -1100,7 +1104,7 @@ function renderMobileMenu(isAdmin){
         <button class="icon-btn" data-action="close-mobile-menu">${ICO.x}</button>
       </div>
       <div class="rail-nav">
-        ${items.map(([v,l,ic])=>`<a href="#" class="rail-link ${isNavActive(v)?'active':''}" data-action="nav" data-view="${v}">${ic}${l}</a>`).join('')}
+        ${isAdmin ? MGMT_NAV_ITEMS.map(([v,l,ic])=>`<a href="#" class="rail-link ${isNavActive(v)?'active':''}" data-action="nav" data-view="${v}">${ic}${l}</a>`).join('') : ''}
         <a href="#" class="rail-link ${isNavActive('settings')?'active':''}" data-action="nav" data-view="settings">${ICO.settings}Settings</a>
       </div>
       <div class="rail-foot">
@@ -1125,6 +1129,7 @@ function renderView(){
   } else {
     if(S.view==='a_dashboard') return renderArtistDashboard(S.user);
     if(S.view==='a_gigs') return renderArtistGigs(S.user);
+    if(S.view==='a_financials') return renderArtistFinancials(S.user);
     if(S.view==='a_projects') return renderArtistProjects(S.user);
   }
   return '';
@@ -1723,10 +1728,54 @@ function renderArtistDashboard(artistId){
   <div class="grid stat-row" style="margin-bottom:20px;">
     ${statTile('Upcoming Gigs', upcoming.length, 'Booked & confirmed')}
     ${statTile('Next Gig', next? `${daysUntil(next.date)}d`: '—', next? fmtDateShort(next.date): 'Nothing scheduled')}
-    ${statTile('YTD Payout', money(ytd), 'Received via Zelle')}
+    ${statTile('YTD Payout', money(ytd), 'Received via Zelle', 'a_financials')}
     ${statTile('Flights Pending', evs.filter(e=>e.flightNeeded&&!e.flightBooked&&!isPast(e.date)).length, 'Awaiting bookkeeping')}
   </div>
-  <div class="card card-pad">${renderCalendarPage(evs, {noLegend:true, singleArtist:true})}</div>
+  <div class="card card-pad dash-calendar">${renderCalendarPage(evs, {noLegend:true, singleArtist:true})}</div>
+  `;
+}
+function renderArtistFinancials(artistId){
+  const evs = eventsFor(artistId);
+  const booked = evs.filter(e=>['booked','paid'].includes(e.status));
+  const totalPayout = booked.reduce((s,e)=>s+e.balance,0);
+  const avgPayout = booked.length ? Math.round(totalPayout/booked.length) : 0;
+  const ytdPayout = evs.filter(e=>e.balanceReceived && new Date(e.balanceReceivedDate).getFullYear()===new Date().getFullYear()).reduce((s,e)=>s+e.balance,0);
+
+  const months=[]; for(let i=5;i>=0;i--){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); months.push(d); }
+  const monthlyPayout = months.map(md=>{
+    const sum = booked.filter(e=>{const ed=new Date(e.date+'T00:00:00'); return ed.getMonth()===md.getMonth()&&ed.getFullYear()===md.getFullYear();}).reduce((s,e)=>s+e.balance,0);
+    return {label: md.toLocaleDateString('en-US',{month:'short'}), val:sum};
+  });
+  const maxMonthly = Math.max(...monthlyPayout.map(m=>m.val),1);
+
+  return `
+  <div class="grid stat-row" style="margin-bottom:20px;">
+    <div class="card stat-tile"><span class="u-label">YTD Payout</span><span class="val">${money(ytdPayout)}</span><span class="sub">Received via Zelle</span></div>
+    <div class="card stat-tile"><span class="u-label">Total Booked</span><span class="val">${money(totalPayout)}</span><span class="sub">${booked.length} jobs</span></div>
+    <div class="card stat-tile"><span class="u-label">Avg Payout</span><span class="val">${money(avgPayout)}</span><span class="sub">per booking</span></div>
+    <div class="card stat-tile"><span class="u-label">Commission Rate</span><span class="val">15%</span><span class="sub">Kept by ASP</span></div>
+  </div>
+
+  <div class="card card-pad" style="margin-bottom:20px;">
+    <div class="section-head"><h2>Monthly Payout</h2></div>
+    <div class="fin-chart" style="display:flex;gap:14px;align-items:flex-end;height:120px;">
+      ${monthlyPayout.map(m=>`<div style="flex:1;min-width:0;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end;">
+        <span class="u-mono" style="font-size:11px;color:var(--ink-2);">${m.val?money(m.val):''}</span>
+        <div style="width:100%;max-width:46px;height:${Math.max(4,(m.val/maxMonthly)*80)}px;background:var(--accent);border-radius:4px 4px 0 0;opacity:.85;"></div>
+        <span class="u-label">${m.label}</span>
+      </div>`).join('')}
+    </div>
+  </div>
+
+  <div class="section-head"><h2>My Jobs (${booked.length})</h2></div>
+  <div class="card u-scroll-x table-cards"><table>
+    <thead><tr><th>Client</th><th>Date</th><th>Price</th><th>Payout</th><th>Status</th></tr></thead>
+    <tbody>${booked.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{const sm=statusMeta(e);
+      return `<tr class="row-link" data-action="open-event" data-id="${e.id}">
+        <td data-label="Client">${esc(e.clientName)}</td><td data-label="Date" class="u-mono">${fmtDateShort(e.date)}</td>
+        <td data-label="Price" class="u-mono">${money(e.price)}</td><td data-label="Payout" class="u-mono">${money(e.balance)}</td>
+        <td data-label="Status"><span class="pill ${sm.cls}">${sm.label}</span></td></tr>`;}).join('')}
+    </tbody></table></div>
   `;
 }
 function renderArtistGigs(artistId){
