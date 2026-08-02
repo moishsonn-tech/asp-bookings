@@ -486,6 +486,8 @@ const ICO = {
   car:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h-.5a1.5 1.5 0 0 1-1.5-1.5v-2a2 2 0 0 1 .15-.76l1.7-4A2 2 0 0 1 6.7 7.5h10.6a2 2 0 0 1 1.85 1.24l1.7 4c.1.24.15.5.15.76v2a1.5 1.5 0 0 1-1.5 1.5H19"/><path d="M5 17h9"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>',
   suitcase:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 13h20"/></svg>',
   checkSquare:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/></svg>',
+  camera:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>',
+  play:'<svg class="ico" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5Z"/></svg>',
 };
 
 /* ============ SEED DATA ============ */
@@ -727,6 +729,7 @@ function makeEvent(artist, offsetDays, forceStatus){
     } : null,
     charges,
     prepSheets: [],
+    eventMedia: [],
     createdAt: fmtISO(created),
     log: log.sort((a,b)=>a.ts-b.ts).map(l=>({...l, ts:l.ts.toISOString()})),
   };
@@ -756,7 +759,7 @@ function makeInternalEvent(artist, offsetDays, type){
     reminderIntervalDays:5, lastReminderSent:null,
     flightNeeded, flightBooked:false, flight:null,
     groundTransportNeeded, groundTransportBooked:false, groundTransport:null,
-    charges:[], prepSheets:[],
+    charges:[], prepSheets:[], eventMedia:[],
     createdAt: fmtISO(created),
     log: [{ts:created.toISOString(), type:'system', text:`${type} scheduled for ${artist.name}.`}],
   };
@@ -793,6 +796,9 @@ let S = {
   itineraryEventId:null,
   showBlockTime:false,
   blockTimeForm:{},
+  showAskAI:false,
+  askAIQuery:'',
+  askAIHistory:[],
   showContract:false,
   showAddCharge:false,
   addChargeForm:{},
@@ -817,10 +823,14 @@ let S = {
   newCommentText:'',
   newLinkForm:{},
   calMonth: (()=>{const d=new Date(); d.setDate(1); return d;})(),
+  calViewMode: 'month',
+  calDate: (()=>{const d=new Date(); d.setHours(0,0,0,0); return d;})(),
   calArtistFilter: [],
   finArtistFilter: 'all',
   newLeadForm: {},
   flightForm: {},
+  publicUploadForm: {},
+  publicUploadDone: false,
 };
 function loadEvents(){
   try{ const raw = localStorage.getItem(LS_KEY); if(raw) return JSON.parse(raw); }catch(e){}
@@ -986,7 +996,7 @@ S.showInstallBanner = shouldShowInstallBanner();
 function closeAllOverlays(){
   S.eventId=null; S.projectId=null; S.showNewLead=false; S.showAddArtist=false; S.newArtistWelcome=null;
   S.dayListDate=null; S.showNewProject=false; S.showFlightForm=false; S.showContract=false;
-  S.showTransportForm=false; S.showItinerary=false; S.itineraryEventId=null; S.showBlockTime=false;
+  S.showTransportForm=false; S.showItinerary=false; S.itineraryEventId=null; S.showBlockTime=false; S.showAskAI=false;
   S.showAddCharge=false; S.showEventMenu=false; S.showDraftUpdate=false; S.projectTab='tasks'; S.showReminderPreview=false;
   S.showMobileMenu=false;
 }
@@ -1035,6 +1045,7 @@ function exportCSV(){
 /* ============ RENDER: SHELL ============ */
 function render(){
   const app = document.getElementById('app');
+  if(location.hash === '#upload'){ app.innerHTML = renderPublicUploadPage(); bindGlobal(); return; }
   const prevScroll = { sheet: document.querySelector('.sheet')?.scrollTop, modal: document.querySelector('.modal')?.scrollTop };
   const hadOverlay = !!document.querySelector('.overlay');
   if(!S.user){ app.innerHTML = renderLogin() + renderInstallBanner(); bindGlobal(); return; }
@@ -1050,6 +1061,7 @@ function render(){
             <h1 style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pageTitle()}</h1>
           </div>
           <div style="display:flex;align-items:center;gap:10px;flex:none;">
+            <button class="icon-btn" data-action="open-ask-ai" title="Ask AI">${ICO.sparkle}</button>
             ${isAdmin ? `<button class="btn btn-primary newlead-btn" data-action="open-new-lead">${ICO.leads}<span class="btn-label">New Lead</span></button>` : ''}
             ${renderUserChip()}
           </div>
@@ -1078,6 +1090,14 @@ function render(){
   if(prevScroll.modal){ const m=document.querySelector('.modal'); if(m) m.scrollTop = prevScroll.modal; }
 }
 
+function renderDayEventRow(e, isAdmin, action){
+  const a = artistById(e.artistId); const sm = statusMeta(e);
+  return `<button class="chooser-row" data-action="${action}" data-id="${e.id}">
+    <span class="avatar" data-slot="${a.slot}" style="width:32px;height:32px;font-size:11px;">${a.initials}</span>
+    <span style="flex:1;min-width:0;"><strong>${e.time==='00:00'?'All day':fmtTime(e.time)} — ${isAdmin?esc(a.name):esc(e.clientName||e.type)}</strong><span class="chooser-email">${isAdmin?esc(e.clientName||e.type):esc(e.venue)} &middot; ${esc(e.type)}</span></span>
+    <span class="pill ${sm.cls}">${sm.label}</span>
+  </button>`;
+}
 function renderDayList(){
   const iso = S.dayListDate;
   const isAdmin = isAdminUser(S.user);
@@ -1086,12 +1106,7 @@ function renderDayList(){
     <div class="modal" data-stop style="width:400px;">
       <div class="sheet-head"><h2 style="font-size:1.1rem;">${fmtDate(iso)}</h2><button class="icon-btn" data-action="close-daylist">${ICO.x}</button></div>
       <div class="sheet-body" style="padding-top:8px;gap:2px;">
-        ${evs.length? evs.map(e=>{const a=artistById(e.artistId); const sm=statusMeta(e);
-          return `<button class="chooser-row" data-action="open-event-from-day" data-id="${e.id}">
-            <span class="avatar" data-slot="${a.slot}" style="width:32px;height:32px;font-size:11px;">${a.initials}</span>
-            <span style="flex:1;min-width:0;"><strong>${e.time==='00:00'?'All day':fmtTime(e.time)} — ${isAdmin?esc(a.name):esc(e.clientName||e.type)}</strong><span class="chooser-email">${isAdmin?esc(e.clientName||e.type):esc(e.venue)} &middot; ${esc(e.type)}</span></span>
-            <span class="pill ${sm.cls}">${sm.label}</span>
-          </button>`;}).join('') : `<p style="color:var(--ink-3);font-size:13px;margin:0;">Nothing on this date.</p>`}
+        ${evs.length? evs.map(e=>renderDayEventRow(e, isAdmin, 'open-event-from-day')).join('') : `<p style="color:var(--ink-3);font-size:13px;margin:0;">Nothing on this date.</p>`}
       </div>
     </div>
   </div>`;
@@ -1228,6 +1243,18 @@ function renderSettingsPage(){
   const st = getUserSettings(S.user);
   const themeIdx = THEME_OPTIONS.findIndex(([k])=>k===THEME_PREF);
   return `
+  ${isAdmin? `<div class="card card-pad" style="margin-bottom:20px;">
+    <h3 style="margin-bottom:8px;">Event Media Upload Link</h3>
+    <p style="font-size:12.5px;color:var(--ink-2);margin:0 0 12px;">Share this link or QR code with photographers, videographers, or guests after an event so they can upload photos and videos straight into ASP Bookings. No account needed — the link only lets them upload, they can't view anyone else's files.</p>
+    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(uploadLinkUrl())}" alt="Event media upload QR code" width="140" height="140" style="border-radius:8px;background:#fff;padding:8px;flex:none;"/>
+      <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:8px;">
+        <div class="u-mono" style="font-size:11.5px;background:var(--surface-2);padding:8px 10px;border-radius:8px;word-break:break-all;">${esc(uploadLinkUrl())}</div>
+        <button class="btn btn-sm" data-action="share-upload-link" style="align-self:flex-start;">${ICO.share} Copy / Share Link</button>
+      </div>
+    </div>
+  </div>` : ''}
+
   <div class="card card-pad" style="margin-bottom:20px;">
     <h3 style="margin-bottom:12px;">Sign-in &amp; Security</h3>
     ${st.passkeys.map(pk=>`<div class="passkey-row">
@@ -1317,6 +1344,37 @@ function renderAccountChooser(){
   </div></div>`;
 }
 
+function renderPublicUploadPage(){
+  const f = S.publicUploadForm || {};
+  return `<div class="login-wrap"><div class="login-card" data-form="publicupload" style="text-align:center;">
+    <div class="wordmark" style="font-size:1.4rem;justify-content:center;"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP<small>Bookings</small></div>
+    <h2 style="font-size:1.05rem;margin:16px 0 4px;">Upload Event Photos &amp; Videos</h2>
+    <p style="color:var(--ink-2);font-size:12.5px;margin:0 0 22px;">For photographers, videographers, and guests — no account needed. This link only lets you upload; you can't view anyone else's files.</p>
+    ${S.publicUploadDone ? `
+      <div style="padding:10px 0 4px;">
+        <div style="color:var(--accent-ink,var(--accent));font-size:15px;font-weight:700;margin-bottom:6px;">${ICO.check} Thanks!</div>
+        <p style="color:var(--ink-2);font-size:13px;margin:0;">Your files were uploaded — ASP will take it from here.</p>
+        <button class="btn btn-sm" style="margin-top:16px;" data-action="reset-public-upload">Upload More</button>
+      </div>
+    ` : `
+      <div style="text-align:left;display:flex;flex-direction:column;gap:14px;">
+        <div class="field"><label>Which Artist</label>
+          <div class="artist-pick">${ARTISTS.map(a=>`<div class="artist-opt ${f.artistId===a.id?'sel':''}" data-action="pick-public-artist" data-id="${a.id}">
+            <span class="avatar" data-slot="${a.slot}" style="width:34px;height:34px;font-size:12px;">${a.initials}</span><span>${esc(a.name)}</span></div>`).join('')}</div>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Event Date</label><input type="date" data-field="date" value="${esc(f.date||'')}"/></div>
+          <div class="field"><label>Your Name (optional)</label><input data-field="uploaderName" value="${esc(f.uploaderName||'')}" placeholder="e.g. Studio 9 Photography"/></div>
+        </div>
+        <label class="btn btn-primary btn-block" style="cursor:pointer;">${ICO.camera} Choose Photos &amp; Videos
+          <input type="file" accept="image/*,video/*" multiple data-action="public-upload-files" style="display:none;"/>
+        </label>
+        <p style="font-size:10.5px;color:var(--ink-3);text-align:center;margin:0;">Pick the artist and date first — upload starts as soon as you choose files.</p>
+      </div>
+    `}
+  </div></div>`;
+}
+
 /* ============ MGMT DASHBOARD ============ */
 function renderWelcomeHeader(name){
   return `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;">
@@ -1331,11 +1389,13 @@ function renderMgmtDashboard(){
   const conflictPairs = allConflictPairs().filter(([a,b])=>!isPast(a.date)||!isPast(b.date));
   const intlTrips = S.events.filter(e=>isInternational(e) && !e.intlOpportunityDismissed && !isPast(e.date) && ['booked','paid'].includes(e.status)).sort((a,b)=>a.date.localeCompare(b.date));
   const needsTravel = S.events.filter(e=>!isPast(e.date) && ((e.flightNeeded && !e.flightBooked) || (e.groundTransportNeeded && !e.groundTransportBooked)));
+  const todayGigs = S.events.filter(e=>e.date===fmtISO(new Date()) && ['booked','paid'].includes(e.status));
   const isCEO = S.user==='admin_ceo';
 
   return `
   ${renderWelcomeHeader(adminById(S.user).name)}
   <div class="grid stat-row" style="margin-bottom:20px;">
+    <div class="card stat-tile" style="cursor:pointer;" data-action="nav-today-gigs"><span class="u-label">Gigs Today</span><span class="val">${todayGigs.length}</span><span class="sub">${fmtDateShort(fmtISO(new Date()))}</span></div>
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="calendar"><span class="u-label">Upcoming Gigs · 30 days</span><span class="val">${upcoming30.length}</span><span class="sub">Booked or paid, next 30 days</span></div>
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Open Leads</span><span class="val">${open.length}</span><span class="sub">Awaiting contract / deposit</span></div>
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Awaiting Balance</span><span class="val">${awaitingBalance.length}</span><span class="sub">Booked, balance not yet in</span></div>
@@ -1427,46 +1487,83 @@ function renderTravelPage(events, opts={}){
 
 /* ============ CALENDAR ============ */
 function renderCalendarPage(events, opts={}){
+  const filtered = S.calArtistFilter.length ? events.filter(e=>S.calArtistFilter.includes(e.artistId)) : events;
+  const isAdmin = isAdminUser(S.user);
+  const mode = opts.miniEmbed ? 'month' : (S.calViewMode||'month');
+  const todayIso = fmtISO(new Date());
+
+  const modeToggle = opts.miniEmbed ? '' : `<div class="chip-row" style="margin-left:auto;flex-wrap:nowrap;">
+    ${['month','week','day'].map(mv=>`<button class="filter-chip ${mode===mv?'sel':''}" data-action="cal-view-mode" data-mode="${mv}">${mv[0].toUpperCase()+mv.slice(1)}</button>`).join('')}
+  </div>`;
+
+  const head = (label)=>`
+    <div class="cal-head">
+      <div class="cal-nav">
+        <button class="icon-btn" data-action="cal-prev">${ICO.chev('l')}</button>
+        <strong style="font-family:var(--font-display);font-size:1.05rem;min-width:150px;text-align:center;">${label}</strong>
+        <button class="icon-btn" data-action="cal-next">${ICO.chev('r')}</button>
+        <button class="btn btn-sm btn-ghost" data-action="cal-today">Today</button>
+        ${opts.showBlockButton ? `<button class="btn btn-sm" data-action="open-block-time">${ICO.clock} Block Time</button>` : ''}
+        ${modeToggle}
+      </div>
+      ${opts.showFilter ? `<div class="chip-row">${ARTISTS.map(a=>`<button class="filter-chip ${S.calArtistFilter.includes(a.id)?'sel':''}" data-action="cal-filter" data-id="${a.id}"><span class="dot" data-slot="${a.slot}"></span>${a.name.split(' ')[0]}</button>`).join('')}</div>`:''}
+    </div>`;
+
+  if(mode==='week'){
+    const start = new Date(S.calDate); start.setDate(start.getDate()-start.getDay());
+    const days = [...Array(7)].map((_,i)=>{ const d=new Date(start); d.setDate(d.getDate()+i); return d; });
+    const rangeLabel = `${days[0].toLocaleDateString('en-US',{month:'short',day:'numeric'})} – ${days[6].toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`;
+    return head(rangeLabel) + `<div style="display:flex;flex-direction:column;gap:10px;">
+      ${days.map(d=>{
+        const iso = fmtISO(d);
+        const evs = filtered.filter(e=>e.date===iso).sort((a,b)=>a.time.localeCompare(b.time));
+        return `<div class="card card-pad">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:${evs.length?'6px':'0'};">
+            <strong style="font-family:var(--font-display);">${d.toLocaleDateString('en-US',{weekday:'long',month:'short',day:'numeric'})}</strong>
+            ${iso===todayIso?'<span class="pill pill-accent">Today</span>':''}
+          </div>
+          ${evs.length? evs.map(e=>renderDayEventRow(e, isAdmin, 'open-event')).join('') : `<p style="color:var(--ink-3);font-size:12.5px;margin:0;">Nothing scheduled.</p>`}
+        </div>`;
+      }).join('')}
+    </div>`;
+  }
+
+  if(mode==='day'){
+    const iso = fmtISO(S.calDate);
+    const evs = filtered.filter(e=>e.date===iso).sort((a,b)=>a.time.localeCompare(b.time));
+    return head(S.calDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'})) + `<div class="card card-pad">
+      ${evs.length? evs.map(e=>renderDayEventRow(e, isAdmin, 'open-event')).join('') : `<p style="color:var(--ink-3);font-size:13px;margin:0;">Nothing scheduled today.</p>`}
+    </div>`;
+  }
+
   const month = S.calMonth;
   const y = month.getFullYear(), m = month.getMonth();
   const first = new Date(y,m,1); const startDow = first.getDay();
   const daysInMonth = new Date(y,m+1,0).getDate();
   const prevDays = new Date(y,m,0).getDate();
-  const filtered = (S.calArtistFilter.length && !opts.compact) ? events.filter(e=>S.calArtistFilter.includes(e.artistId)) : events;
   const byDate = {};
   filtered.forEach(e=>{ (byDate[e.date] = byDate[e.date]||[]).push(e); });
-  const todayIso = fmtISO(new Date());
   const cells=[];
   for(let i=startDow-1;i>=0;i--) cells.push({d:prevDays-i, out:true});
   for(let d=1;d<=daysInMonth;d++) cells.push({d, out:false, iso: `${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`});
   { let nextDay=1; while(cells.length%7!==0) cells.push({d:nextDay++, out:true}); }
 
   const monthLabel = month.toLocaleDateString('en-US',{month:'long', year:'numeric'});
-  return `
-    <div class="cal-head">
-      <div class="cal-nav">
-        <button class="icon-btn" data-action="cal-prev">${ICO.chev('l')}</button>
-        <strong style="font-family:var(--font-display);font-size:1.05rem;min-width:150px;text-align:center;">${monthLabel}</strong>
-        <button class="icon-btn" data-action="cal-next">${ICO.chev('r')}</button>
-        <button class="btn btn-sm btn-ghost" data-action="cal-today">Today</button>
-        ${opts.showBlockButton ? `<button class="btn btn-sm" data-action="open-block-time" style="margin-left:auto;">${ICO.clock} Block Time</button>` : ''}
-      </div>
-      ${opts.showFilter ? `<div class="chip-row">${ARTISTS.map(a=>`<button class="filter-chip ${S.calArtistFilter.includes(a.id)?'sel':''}" data-action="cal-filter" data-id="${a.id}"><span class="dot" data-slot="${a.slot}"></span>${a.name.split(' ')[0]}</button>`).join('')}</div>`:''}
-    </div>
+  return head(monthLabel) + `
     <div class="cal-grid">
       ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].map(d=>`<div class="cal-dow">${d}</div>`).join('')}
       ${cells.map(c=>{
         if(c.out) return `<div class="cal-cell out"><span class="cal-date">${c.d}</span></div>`;
         const evs = (byDate[c.iso]||[]).sort((a,b)=>a.time.localeCompare(b.time));
-        const max = opts.compact?2:3;
-        return `<div class="cal-cell ${c.iso===todayIso?'today':''}">
+        const max = 3;
+        return `<div class="cal-cell ${c.iso===todayIso?'today':''}" data-action="open-day-view" data-date="${c.iso}" style="cursor:pointer;">
           <span class="cal-date">${c.d}</span>
           ${evs.slice(0,max).map(e=>{const a=artistById(e.artistId); const label = opts.singleArtist? (e.clientName||e.type).split(' ')[0] : a.name.split(' ')[0]; const timePrefix = e.time==='00:00' ? '' : fmtTime(e.time).replace(':00','')+' '; return `<div class="cal-evt" data-action="open-event" data-id="${e.id}"><span class="dot" data-slot="${a.slot}"></span><span>${timePrefix}${esc(label)}</span></div>`;}).join('')}
           ${evs.length>max? `<span class="cal-more" data-action="open-day" data-date="${c.iso}">+${evs.length-max} more</span>`:''}
         </div>`;
       }).join('')}
     </div>
-    ${(!opts.compact && !opts.noLegend) ? `<div class="legend">${ARTISTS.map(a=>`<span class="legend-item"><span class="dot" data-slot="${a.slot}"></span>${a.name}</span>`).join('')}</div>`:''}
+    ${(!opts.noLegend) ? `<div class="legend">${ARTISTS.map(a=>`<span class="legend-item"><span class="dot" data-slot="${a.slot}"></span>${a.name}</span>`).join('')}</div>`:''}
   `;
 }
 
@@ -1530,7 +1627,7 @@ function renderArtistDetailPage(artistId){
       <span class="avatar" data-slot="${a.slot}" style="width:52px;height:52px;font-size:17px;">${a.initials}</span>
       <div><h2 style="font-size:1.5rem;">${esc(a.name)}</h2><span class="u-label">Viewing as Management</span></div>
     </div>
-    <div class="card card-pad" style="margin-bottom:20px;">${renderCalendarPage(evs, {noLegend:true, singleArtist:true})}</div>
+    <div class="card card-pad" style="margin-bottom:20px;">${renderCalendarPage(evs, {noLegend:true, singleArtist:true, miniEmbed:true})}</div>
     <div class="section-head"><h2>Upcoming (${upcoming.length})</h2></div>
     ${renderEventTable(upcoming, {})}
   `;
@@ -2130,6 +2227,7 @@ function renderEventSheet(ev){
         </div>` : ''}
         ${!ev.unpaid ? renderLedger(ev, isAdmin) : ''}
         ${renderPrepSheets(ev, isAdmin)}
+        ${renderEventMedia(ev, isAdmin)}
         ${!isAdmin ? `<div>
             <div style="display:flex;gap:8px;">
               <button class="btn btn-primary btn-block" data-action="gcal" data-id="${ev.id}">${ICO.cal} Add to Google Calendar</button>
@@ -2253,6 +2351,24 @@ function renderPrepSheets(ev, isAdmin){
       </div>`).join('')}</div>` : `<p style="font-size:12.5px;color:var(--ink-3);margin:0 0 ${isAdmin?'10px':'0'};">No prep sheets uploaded yet.</p>`}
     ${isAdmin? `<label class="btn btn-sm" style="cursor:pointer;display:inline-flex;">Upload File<input type="file" data-action="upload-prep" data-id="${ev.id}" multiple style="display:none;"/></label>
       <p style="font-size:10.5px;color:var(--ink-3);margin:8px 0 0;">Stored in this demo session only — swapped for real cloud storage once ASP is online.</p>` : ''}
+  </div>`;
+}
+
+function renderEventMedia(ev, isAdmin){
+  const files = ev.eventMedia||[];
+  return `<div class="card card-pad">
+    <div class="u-label" style="margin-bottom:8px;">Event Photos &amp; Videos</div>
+    ${files.length? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-bottom:10px;">${files.map(m=>`
+      <div style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);">
+        <a href="${m.dataUrl}" target="_blank" rel="noopener" style="display:block;width:100%;height:100%;" title="${esc(m.name)} — ${esc(m.uploaderName)}">
+          ${m.type==='video'
+            ? `<video src="${m.dataUrl}" style="width:100%;height:100%;object-fit:cover;" muted></video>`
+            : `<img src="${m.dataUrl}" style="width:100%;height:100%;object-fit:cover;" alt="${esc(m.name)}"/>`}
+        </a>
+        ${m.type==='video'?`<span style="position:absolute;left:4px;bottom:4px;color:#fff;background:rgba(0,0,0,.55);border-radius:6px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;pointer-events:none;">${ICO.play}</span>`:''}
+        ${isAdmin?`<button class="icon-btn" data-action="remove-event-media" data-id="${ev.id}" data-mediaid="${m.id}" title="Remove" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;width:22px;height:22px;">${ICO.x}</button>`:''}
+      </div>`).join('')}</div>` : `<p style="font-size:12.5px;color:var(--ink-3);margin:0;">No photos or videos uploaded yet.</p>`}
+    <p style="font-size:10.5px;color:var(--ink-3);margin:0;">Uploaded by outside contacts via the general event-media upload link — see Settings for the link/QR. Stored in this demo session only.</p>
   </div>`;
 }
 
@@ -2585,6 +2701,49 @@ function doRemovePrep(id, prepId){
   ev.prepSheets = (ev.prepSheets||[]).filter(f=>f.id!==prepId);
   saveEvents(); openEvent(id);
 }
+function uploadLinkUrl(){ return location.origin + location.pathname + '#upload'; }
+function doShareUploadLink(){
+  const url = uploadLinkUrl();
+  if(navigator.share){
+    navigator.share({title:'ASP Event Media Upload', text:'Upload event photos & videos here:', url}).catch(()=>{});
+  } else if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(()=>toast('Upload link copied to clipboard.', 'system')).catch(()=>toast('Could not copy — try again.', 'system'));
+  } else {
+    toast('Sharing not supported in this browser.', 'system');
+  }
+}
+function doPublicUpload(files){
+  const f = S.publicUploadForm || {};
+  if(!f.artistId){ toast('Choose which artist first.', 'system'); return; }
+  if(!f.date){ toast('Enter the event date first.', 'system'); return; }
+  const matches = S.events.filter(e=>e.artistId===f.artistId && e.date===f.date);
+  if(!matches.length){ toast('No event found for that artist on that date — double check with ASP office.', 'system'); return; }
+  const uploaderName = (f.uploaderName||'').trim();
+  let remaining = files.length, succeeded = 0;
+  Array.from(files).forEach(file=>{
+    const reader = new FileReader();
+    const finish = ()=>{
+      remaining--;
+      if(remaining===0){
+        saveEvents();
+        if(succeeded) S.publicUploadDone = true; else toast('Could not read the selected files.', 'system');
+        render();
+      }
+    };
+    reader.onload = ()=>{
+      const item = {id:'EM-'+Date.now()+Math.random().toString(36).slice(2,6), name:file.name, type: file.type.startsWith('video')?'video':'image', dataUrl:reader.result, uploadedAt:fmtISO(new Date()), uploaderName: uploaderName||'Anonymous'};
+      matches.forEach((ev,i)=>{ ev.eventMedia = ev.eventMedia||[]; ev.eventMedia.push(item); if(i===0) logEvent(ev,'system', `${uploaderName||'Someone'} uploaded event media.`); });
+      succeeded++; finish();
+    };
+    reader.onerror = ()=>{ finish(); };
+    reader.readAsDataURL(file);
+  });
+}
+function doRemoveEventMedia(id, mediaId){
+  const ev = getEvent(id);
+  ev.eventMedia = (ev.eventMedia||[]).filter(m=>m.id!==mediaId);
+  saveEvents(); openEvent(id);
+}
 function doShareEvent(id){
   S.showEventMenu = false;
   const ev = getEvent(id); const a = artistById(ev.artistId);
@@ -2736,7 +2895,7 @@ function doSubmitLead(){
     balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
     flightNeeded: !!f.flightNeeded, flightBooked:false, flight:null,
     groundTransportNeeded: !!f.groundTransportNeeded, groundTransportBooked:false, groundTransport:null,
-    charges: isInternal? [] : (f.charges||[]), prepSheets:[], createdAt: fmtISO(new Date()),
+    charges: isInternal? [] : (f.charges||[]), prepSheets:[], eventMedia:[], createdAt: fmtISO(new Date()),
     log:[{ts:new Date().toISOString(), type:'system', text: isInternal? `${resolvedType} scheduled for ${artistById(f.artistId).name}.` : `Lead created for ${artistById(f.artistId).name} — client info entered by management.`}],
   };
   S.events.unshift(ev); saveEvents();
@@ -2764,7 +2923,7 @@ function doSubmitBlockTime(){
       balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
       flightNeeded:false, flightBooked:false, flight:null,
       groundTransportNeeded:false, groundTransportBooked:false, groundTransport:null,
-      charges:[], prepSheets:[], createdAt: fmtISO(new Date()),
+      charges:[], prepSheets:[], eventMedia:[], createdAt: fmtISO(new Date()),
       log:[{ts:new Date().toISOString(), type:'system', text:`${artist.name} blocked this date${f.note?': '+f.note:''}.`}],
     };
     if(findConflicts(ev).length) hadConflict = true;
@@ -2816,7 +2975,7 @@ function bindGlobal(){
       const form = el.closest('[data-form]')?.getAttribute('data-form');
       if(form==='task'){ S.newTaskText = el.value; return; }
       if(form==='comment'){ S.newCommentText = el.value; return; }
-      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm };
+      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm, publicupload:S.publicUploadForm };
       const target = formTargets[form] || S.newLeadForm;
       target[key] = el.type==='checkbox'? el.checked : el.value;
     });
@@ -2841,6 +3000,7 @@ function bindGlobal(){
       case 'close-mobile-menu': S.showMobileMenu=false; render(); break;
       case 'mobilemenu-close': if(e.target===t){ S.showMobileMenu=false; render(); } break;
       case 'nav': navigate(t.getAttribute('data-view')); break;
+      case 'nav-today-gigs': navigate(isAdminUser(S.user)?'calendar':'a_calendar', {calViewMode:'day', calDate:(()=>{const d=new Date(); d.setHours(0,0,0,0); return d;})()}); break;
       case 'open-event': openEvent(id); break;
       case 'open-day': closeAllOverlays(); S.dayListDate = t.getAttribute('data-date'); render(); break;
       case 'close-daylist': S.dayListDate = null; render(); break;
@@ -2869,9 +3029,22 @@ function bindGlobal(){
         S.newLeadForm.charges.splice(Number(t.getAttribute('data-idx')), 1);
         render(); break;
       }
-      case 'cal-prev': S.calMonth.setMonth(S.calMonth.getMonth()-1); render(); break;
-      case 'cal-next': S.calMonth.setMonth(S.calMonth.getMonth()+1); render(); break;
-      case 'cal-today': S.calMonth = (()=>{const d=new Date(); d.setDate(1); return d;})(); render(); break;
+      case 'cal-prev':
+        if(S.calViewMode==='week') S.calDate.setDate(S.calDate.getDate()-7);
+        else if(S.calViewMode==='day') S.calDate.setDate(S.calDate.getDate()-1);
+        else S.calMonth.setMonth(S.calMonth.getMonth()-1);
+        render(); break;
+      case 'cal-next':
+        if(S.calViewMode==='week') S.calDate.setDate(S.calDate.getDate()+7);
+        else if(S.calViewMode==='day') S.calDate.setDate(S.calDate.getDate()+1);
+        else S.calMonth.setMonth(S.calMonth.getMonth()+1);
+        render(); break;
+      case 'cal-today':
+        S.calMonth = (()=>{const d=new Date(); d.setDate(1); return d;})();
+        S.calDate = (()=>{const d=new Date(); d.setHours(0,0,0,0); return d;})();
+        render(); break;
+      case 'cal-view-mode': S.calViewMode = t.getAttribute('data-mode'); render(); break;
+      case 'open-day-view': S.calViewMode='day'; S.calDate=new Date(t.getAttribute('data-date')+'T00:00:00'); render(); break;
       case 'cal-filter': {
         const i = S.calArtistFilter.indexOf(id);
         if(i>-1) S.calArtistFilter.splice(i,1); else S.calArtistFilter.push(id);
@@ -2895,6 +3068,10 @@ function bindGlobal(){
       case 'confirm-add-charge': doAddCharge(id); break;
       case 'remove-charge': doRemoveCharge(id, t.getAttribute('data-chargeid')); break;
       case 'remove-prep': doRemovePrep(id, t.getAttribute('data-prepid')); break;
+      case 'remove-event-media': doRemoveEventMedia(id, t.getAttribute('data-mediaid')); break;
+      case 'pick-public-artist': S.publicUploadForm.artistId = id; render(); break;
+      case 'reset-public-upload': S.publicUploadForm={}; S.publicUploadDone=false; render(); break;
+      case 'share-upload-link': doShareUploadLink(); break;
       case 'view-contract': S.showContract=true; render(); break;
       case 'close-contract': S.showContract=false; render(); break;
       case 'contract-overlay-close': if(e.target===t) { S.showContract=false; render(); } break;
@@ -2970,6 +3147,9 @@ function bindGlobal(){
   document.querySelectorAll('[data-action="upload-prep"]').forEach(inp=>{
     inp.addEventListener('change', ()=>{ if(inp.files.length) doUploadPrep(inp.getAttribute('data-id'), inp.files); });
   });
+  document.querySelectorAll('[data-action="public-upload-files"]').forEach(inp=>{
+    inp.addEventListener('change', ()=>{ if(inp.files.length) doPublicUpload(inp.files); });
+  });
   document.querySelectorAll('[data-action="upload-project-image"]').forEach(inp=>{
     inp.addEventListener('change', ()=>{ if(inp.files.length) doUploadProjectImage(inp.getAttribute('data-id'), inp.files); });
   });
@@ -2996,6 +3176,7 @@ function bindGlobal(){
 }
 
 render();
+window.addEventListener('hashchange', render);
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
