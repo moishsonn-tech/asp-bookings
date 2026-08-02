@@ -347,10 +347,10 @@ body:has(.bottom-nav) .install-banner{ bottom:76px; }
 .doc-signature{ display:inline-block; font-family:"Snell Roundhand","Segoe Script","Brush Script MT",cursive; font-size:1.9rem; font-weight:400; color:var(--ink); line-height:1.1; transform:rotate(-2deg); margin-bottom:2px; }
 .doc-foot{ margin-top:28px; padding-top:14px; border-top:1px solid var(--border); font-size:10.5px; color:var(--ink-3); text-align:center; }
 @media print{
-  body > *:not(#contractPrintHost){ display:none !important; }
-  #contractPrintHost, #contractPrintHost .overlay{ position:static !important; background:transparent !important; inset:auto !important; display:block !important; padding:0 !important; }
-  #contractPrintHost .doc{ box-shadow:none; max-height:none; width:100%; animation:none; }
-  #contractPrintHost .sheet-head{ display:none; }
+  body > *:not(#contractPrintHost):not(#itineraryPrintHost){ display:none !important; }
+  #contractPrintHost, #contractPrintHost .overlay, #itineraryPrintHost, #itineraryPrintHost .overlay{ position:static !important; background:transparent !important; inset:auto !important; display:block !important; padding:0 !important; }
+  #contractPrintHost .doc, #itineraryPrintHost .doc{ box-shadow:none; max-height:none; width:100%; animation:none; }
+  #contractPrintHost .sheet-head, #itineraryPrintHost .sheet-head{ display:none; }
 }
 @media (max-width: 860px){
   .rail{ display:none; }
@@ -478,6 +478,8 @@ const ICO = {
   menu:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
   key:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>',
   mic:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/><path d="M8 22h8"/></svg>',
+  car:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h-.5a1.5 1.5 0 0 1-1.5-1.5v-2a2 2 0 0 1 .15-.76l1.7-4A2 2 0 0 1 6.7 7.5h10.6a2 2 0 0 1 1.85 1.24l1.7 4c.1.24.15.5.15.76v2a1.5 1.5 0 0 1-1.5 1.5H19"/><path d="M5 17h9"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>',
+  suitcase:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 13h20"/></svg>',
 };
 
 /* ============ SEED DATA ============ */
@@ -599,6 +601,7 @@ const isAdminUser = (id)=>ADMIN_USERS.some(u=>u.id===id);
 const adminById = (id)=>ADMIN_USERS.find(u=>u.id===id);
 
 const EVENT_TYPES = ['Wedding','Bar Mitzvah','Sheva Brachos','Concert','Melave Malka','Chinese Auction','Private Simcha','Other'];
+const INTERNAL_EVENT_TYPES = ['Recording Day','Filming Day','Rehearsal','Studio Session','Other'];
 
 /* ============ PRICING ============ */
 const PRICING_LS_KEY = 'asp_mock_pricing_v1';
@@ -665,6 +668,8 @@ function makeEvent(artist, offsetDays, forceStatus){
   const balanceReceived = status==='paid';
   const flightNeeded = rng() < 0.4;
   const flightBooked = flightNeeded && (status==='booked'||status==='paid') && rng()<0.65;
+  const groundTransportNeeded = rng() < 0.3;
+  const groundTransportBooked = groundTransportNeeded && (status==='booked'||status==='paid') && rng()<0.6;
   const client = FIRST[randInt(0,FIRST.length-1)]+' '+LAST[randInt(0,LAST.length-1)];
   const startTime = pick(['18:00','19:00','19:30','20:00','21:00']);
   const endTimeVal = addMinutesToTime(startTime, randInt(2,3)*60);
@@ -683,11 +688,14 @@ function makeEvent(artist, offsetDays, forceStatus){
     log.push({ts:addDays(created,6), type:'email', text:`Schedule notification sent to ${artist.name}.`}); }
   if(flightNeeded){ log.push({ts:addDays(created,2), type:'system', text:'Flight needed — bookkeeping notified.'});
     if(flightBooked) log.push({ts:addDays(created,9), type:'success', text:`Flight booked & added to itinerary — ${artist.name} notified.`}); }
+  if(groundTransportNeeded){ log.push({ts:addDays(created,2), type:'system', text:'Ground transport needed — bookkeeping notified.'});
+    if(groundTransportBooked) log.push({ts:addDays(created,8), type:'success', text:`Driver booked & added to itinerary — ${artist.name} notified.`}); }
   if(balanceReceived){ log.push({ts:addDays(date,1), type:'success', text:'Bookkeeping marked balance received via Zelle — reminders stopped.'}); }
   return {
     id: 'EV-'+(EVID++),
     artistId: artist.id,
     type: pick(EVENT_TYPES),
+    unpaid: false,
     clientName: client,
     clientEmail: client.toLowerCase().replace(' ','.')+'@example.com',
     clientPhone: '(917) '+randInt(200,899)+'-'+randInt(1000,9999),
@@ -705,10 +713,46 @@ function makeEvent(artist, offsetDays, forceStatus){
       airline: pick(['El Al','Delta','United','American']), confirmation: 'CNF'+randInt(1000,9999),
       depart: fmtISO(addDays(date,-1))+' 14:20', arrive: fmtISO(date)+' 17:05', notes:'Round-trip, coach.'
     } : null,
+    groundTransportNeeded, groundTransportBooked,
+    groundTransport: groundTransportBooked ? {
+      driverName: pick(['Yossi K.','Mendy F.','Shloimy G.','Duvid R.']), driverPhone: '(347) '+randInt(200,899)+'-'+randInt(1000,9999),
+      pickupTime: fmtISO(date)+' '+addMinutesToTime(startTime, -90), pickupLocation: 'Airport / home pickup',
+      dropoffTime: fmtISO(date)+' '+startTime, dropoffLocation: v.venue, notes:'Sedan, one-way to venue.'
+    } : null,
     charges,
     prepSheets: [],
     createdAt: fmtISO(created),
     log: log.sort((a,b)=>a.ts-b.ts).map(l=>({...l, ts:l.ts.toISOString()})),
+  };
+}
+
+function makeInternalEvent(artist, offsetDays, type){
+  const date = addDays(new Date(), offsetDays);
+  const startTime = pick(['10:00','11:00','13:00']);
+  const endTimeVal = addMinutesToTime(startTime, randInt(3,6)*60);
+  const v = pick(VENUES);
+  const flightNeeded = rng() < 0.2;
+  const groundTransportNeeded = rng() < 0.3;
+  const created = addDays(new Date(), -randInt(2,20));
+  return {
+    id: 'EV-'+(EVID++),
+    artistId: artist.id,
+    type,
+    unpaid: true,
+    clientName: null, clientEmail:'', clientPhone:'',
+    date: fmtISO(date),
+    time: startTime, endTime: endTimeVal,
+    venue: v.venue, city: v.city, state: v.state,
+    price:0, commission:0, balance:0,
+    status:'scheduled',
+    depositReceived:false, depositReceivedDate:null,
+    balanceReceived:false, balanceReceivedDate:null,
+    reminderIntervalDays:5, lastReminderSent:null,
+    flightNeeded, flightBooked:false, flight:null,
+    groundTransportNeeded, groundTransportBooked:false, groundTransport:null,
+    charges:[], prepSheets:[],
+    createdAt: fmtISO(created),
+    log: [{ts:created.toISOString(), type:'system', text:`${type} scheduled for ${artist.name}.`}],
   };
 }
 
@@ -723,6 +767,9 @@ function seedAll(){
     for(let i=0;i<4;i++) events.push(makeEvent(artist, -randInt(5,150)));
     events.push(makeEvent(artist, randInt(80,140), 'booked'));
   });
+  events.push(makeInternalEvent(ARTISTS[0], randInt(5,15), 'Recording Day'));
+  events.push(makeInternalEvent(ARTISTS[1], randInt(8,20), 'Filming Day'));
+  events.push(makeInternalEvent(ARTISTS[2], randInt(10,25), 'Rehearsal'));
   return events;
 }
 
@@ -734,6 +781,10 @@ let S = {
   eventId: null,
   showNewLead:false,
   showFlightForm:false,
+  showTransportForm:false,
+  transportForm:{},
+  showItinerary:false,
+  itineraryEventId:null,
   showContract:false,
   showAddCharge:false,
   addChargeForm:{},
@@ -875,6 +926,7 @@ function statusMeta(ev){
     contract_sent:{label:'Contract Sent', cls:'pill-warn'},
     booked:    {label: ev.balanceReceived? 'Paid in Full':'Booked · Balance Pending', cls: ev.balanceReceived? 'pill-good':'pill-accent'},
     paid:      {label: isPast(ev.date)?'Completed':'Paid in Full', cls:'pill-good'},
+    scheduled: {label: isPast(ev.date)?'Completed':'Scheduled', cls:'pill-neutral'},
   };
   return map[ev.status] || {label:ev.status, cls:'pill-neutral'};
 }
@@ -926,6 +978,7 @@ S.showInstallBanner = shouldShowInstallBanner();
 function closeAllOverlays(){
   S.eventId=null; S.projectId=null; S.showNewLead=false; S.showAddArtist=false; S.newArtistWelcome=null;
   S.dayListDate=null; S.showNewProject=false; S.showFlightForm=false; S.showContract=false;
+  S.showTransportForm=false; S.showItinerary=false; S.itineraryEventId=null;
   S.showAddCharge=false; S.showEventMenu=false; S.showDraftUpdate=false; S.projectTab='tasks'; S.showReminderPreview=false;
   S.showMobileMenu=false;
 }
@@ -1054,7 +1107,7 @@ function renderUserChip(){
 
 const MGMT_NAV_ITEMS = [
   ['dashboard','Dashboard',ICO.dash], ['calendar','Calendar',ICO.cal], ['leads','Leads',ICO.leads],
-  ['artists','Artists',ICO.artists], /* ['projects','Projects',ICO.kanban], -- hidden until real projects are in use, see asp_bookings_project memory */ ['pricing','Pricing',ICO.tag], ['financials','Financials',ICO.money],
+  ['artists','Artists',ICO.artists], ['travel','Travel',ICO.suitcase], /* ['projects','Projects',ICO.kanban], -- hidden until real projects are in use, see asp_bookings_project memory */ ['pricing','Pricing',ICO.tag], ['financials','Financials',ICO.money],
 ];
 const ARTIST_NAV_ITEMS = [
   ['a_dashboard','Dashboard',ICO.dash], ['a_calendar','Calendar',ICO.cal], ['a_gigs','My Gigs',ICO.mic], ['a_financials','Financials',ICO.money], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
@@ -1132,7 +1185,7 @@ function renderView(){
     if(S.view==='projects') return renderProjectsBoard();
     if(S.view==='pricing') return renderPricingPage();
     if(S.view==='international') return renderInternationalPage();
-    if(S.view==='flights') return renderFlightsPage();
+    if(S.view==='travel') return renderTravelPage();
   } else {
     if(S.view==='a_dashboard') return renderArtistDashboard(S.user);
     if(S.view==='a_calendar') return renderCalendarPage(eventsFor(S.user), {noLegend:true, singleArtist:true});
@@ -1259,7 +1312,6 @@ function renderMgmtDashboard(){
   const open = S.events.filter(e=>['lead','negotiating','contract_sent'].includes(e.status));
   const awaitingBalance = S.events.filter(e=>e.status==='booked' && !e.balanceReceived);
   const upcoming30 = S.events.filter(e=>!isPast(e.date) && daysUntil(e.date)<=30 && ['booked','paid'].includes(e.status));
-  const flightsToBook = S.events.filter(e=>e.flightNeeded && !e.flightBooked && ['booked','paid'].includes(e.status) && !isPast(e.date));
   const conflictPairs = allConflictPairs().filter(([a,b])=>!isPast(a.date)||!isPast(b.date));
   const intlTrips = S.events.filter(e=>isInternational(e) && !e.intlOpportunityDismissed && !isPast(e.date) && ['booked','paid'].includes(e.status)).sort((a,b)=>a.date.localeCompare(b.date));
   const isCEO = S.user==='admin_ceo';
@@ -1270,10 +1322,7 @@ function renderMgmtDashboard(){
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="calendar"><span class="u-label">Upcoming Gigs · 30 days</span><span class="val">${upcoming30.length}</span><span class="sub">Booked or paid, next 30 days</span></div>
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Open Leads</span><span class="val">${open.length}</span><span class="sub">Awaiting contract / deposit</span></div>
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Awaiting Balance</span><span class="val">${awaitingBalance.length}</span><span class="sub">Booked, balance not yet in</span></div>
-  </div>
-  <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
     ${statTile('International Opportunities', intlTrips.length, 'Artist traveling — worth adding nearby bookings', 'international')}
-    ${statTile('Flights To Book', flightsToBook.length, 'Booked, no flight yet', 'flights')}
   </div>
 
   ${(!isCEO && conflictPairs.length) ? `
@@ -1316,12 +1365,42 @@ function renderInternationalPage(){
   </div>`}
   `;
 }
-function renderFlightsPage(){
-  const flightsToBook = S.events.filter(e=>e.flightNeeded && !e.flightBooked && ['booked','paid'].includes(e.status) && !isPast(e.date)).sort((a,b)=>a.date.localeCompare(b.date));
+function renderTravelPage(){
+  const upcoming = e=>!isPast(e.date);
+  const needsFlight = S.events.filter(e=>upcoming(e) && e.flightNeeded && !e.flightBooked);
+  const needsTransport = S.events.filter(e=>upcoming(e) && e.groundTransportNeeded && !e.groundTransportBooked);
+  const readyItineraries = S.events.filter(e=>upcoming(e) && (e.flightBooked || e.groundTransportBooked)).sort((a,b)=>a.date.localeCompare(b.date));
+  const travelRow = (e, needLabel)=>{
+    const a = artistById(e.artistId);
+    return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;" data-action="open-event" data-id="${e.id}">
+      <span><strong>${esc(a.name)}</strong> — ${esc(e.type)}${e.clientName?` (${esc(e.clientName)})`:''}, ${fmtDateShort(e.date)}</span>
+      <span class="pill pill-warn">${needLabel}</span>
+    </div>`;
+  };
   return `
-  ${subpageBack()}
-  <div class="section-head"><h2>Flights To Book (${flightsToBook.length})</h2></div>
-  ${renderEventTable(flightsToBook, {showArtist:true})}
+  <div class="section-head"><h2>Needs Arranging</h2></div>
+  ${(!needsFlight.length && !needsTransport.length) ? `<div class="card empty">Nothing needs arranging right now.</div>` : `
+  <div class="card card-pad" style="display:flex;flex-direction:column;gap:2px;margin-bottom:20px;">
+    ${needsFlight.map(e=>travelRow(e,'Needs flight')).join('')}
+    ${needsTransport.map(e=>travelRow(e,'Needs driver')).join('')}
+  </div>`}
+
+  <div class="section-head"><h2>Upcoming Itineraries (${readyItineraries.length})</h2></div>
+  ${!readyItineraries.length ? `<div class="card empty">Nothing here yet.</div>` : `
+  <div class="card u-scroll-x table-cards"><table>
+    <thead><tr><th>Artist</th><th>Type</th><th>Date</th><th>Flight</th><th>Ground</th><th></th></tr></thead>
+    <tbody>
+      ${readyItineraries.map(e=>{
+        const a = artistById(e.artistId);
+        return `<tr>
+          <td data-label="Artist"><span style="display:flex;align-items:center;gap:7px;"><span class="avatar" data-slot="${a.slot}" style="width:22px;height:22px;font-size:9px;">${a.initials}</span>${esc(a.name)}</span></td>
+          <td data-label="Type">${esc(e.type)}</td><td data-label="Date" class="u-mono">${fmtDateShort(e.date)}</td>
+          <td data-label="Flight">${e.flightBooked?`<span class="pill pill-good">Booked</span>`:'—'}</td>
+          <td data-label="Ground">${e.groundTransportBooked?`<span class="pill pill-good">Booked</span>`:'—'}</td>
+          <td data-label=""><button class="btn btn-sm" data-action="view-itinerary" data-id="${e.id}">${ICO.suitcase} Itinerary</button></td>
+        </tr>`;
+      }).join('')}
+    </tbody></table></div>`}
   `;
 }
 
@@ -1382,8 +1461,8 @@ function renderEventTable(events, opts={}){
         const a = artistById(e.artistId); const sm = statusMeta(e);
         return `<tr class="row-link" data-action="open-event" data-id="${e.id}">
           ${opts.showArtist?`<td data-label="Artist"><span style="display:flex;align-items:center;gap:7px;"><span class="avatar" data-slot="${a.slot}" style="width:22px;height:22px;font-size:9px;">${a.initials}</span>${esc(a.name)}</span></td>`:''}
-          <td data-label="Client">${esc(e.clientName)}</td><td data-label="Type">${esc(e.type)}</td><td data-label="Date" class="u-mono">${fmtDateShort(e.date)}</td>
-          <td data-label="Location">${esc(e.venue)||'—'}</td><td data-label="Price" class="u-mono">${money(e.price)}</td>
+          <td data-label="Client">${e.clientName? esc(e.clientName) : '—'}</td><td data-label="Type">${esc(e.type)}</td><td data-label="Date" class="u-mono">${fmtDateShort(e.date)}</td>
+          <td data-label="Location">${esc(e.venue)||'—'}</td><td data-label="Price" class="u-mono">${e.unpaid? '—' : money(e.price)}</td>
           <td data-label="Status"><span class="pill ${sm.cls}">${sm.label}</span></td>
         </tr>`;
       }).join('')}
@@ -1829,43 +1908,54 @@ function renderLeadChargesSection(f){
 }
 function renderNewLeadModal(){
   const f = S.newLeadForm;
+  const kind = f.kind || 'client';
+  const isInternal = kind==='internal';
+  const typeList = isInternal ? INTERNAL_EVENT_TYPES : EVENT_TYPES;
   return `<div class="overlay center" data-action="overlay-close">
     <div class="modal" data-stop data-form="lead">
-      <div class="sheet-head"><h2 style="font-size:1.3rem;">New Lead</h2><button class="icon-btn" data-action="close-sheet">${ICO.x}</button></div>
+      <div class="sheet-head"><h2 style="font-size:1.3rem;">${isInternal?'New Internal Day':'New Lead'}</h2><button class="icon-btn" data-action="close-sheet">${ICO.x}</button></div>
       <div class="sheet-body">
-        <p style="font-size:12px;color:var(--ink-3);margin:0;">Only the artist, client name, and date are required — everything else can be filled in once it's known.</p>
+        <div class="chip-row">
+          <button class="filter-chip ${!isInternal?'sel':''}" data-action="pick-booking-kind" data-kind="client">Client Booking</button>
+          <button class="filter-chip ${isInternal?'sel':''}" data-action="pick-booking-kind" data-kind="internal">Internal Day</button>
+        </div>
+        <p style="font-size:12px;color:var(--ink-3);margin:0;">${isInternal? 'For recording days, filming days, rehearsals — no client, no payment, just pencils the artist’s time in.' : "Only the artist, client name, and date are required — everything else can be filled in once it's known."}</p>
         <div class="field"><label>Artist</label>
           <div class="artist-pick">${ARTISTS.map(a=>`<div class="artist-opt ${f.artistId===a.id?'sel':''}" data-action="pick-artist" data-id="${a.id}">
             <span class="avatar" data-slot="${a.slot}" style="width:34px;height:34px;font-size:12px;">${a.initials}</span><span>${a.name}</span></div>`).join('')}</div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Client Name</label><input data-field="clientName" value="${esc(f.clientName||'')}" placeholder="Full name"/></div>
-          <div class="field"><label>Event Type</label><select data-action="pick-event-type">${EVENT_TYPES.map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}</select></div>
+          ${!isInternal? `<div class="field"><label>Client Name</label><input data-field="clientName" value="${esc(f.clientName||'')}" placeholder="Full name"/></div>` : ''}
+          <div class="field"><label>Event Type</label><select data-action="pick-event-type">${typeList.map(t=>`<option ${f.type===t?'selected':''}>${t}</option>`).join('')}</select></div>
         </div>
-        ${f.type==='Other'? `<div class="field"><label>Describe the Event Type</label><input data-field="customType" value="${esc(f.customType||'')}" placeholder="e.g. Bris, Vort, Studio Session"/></div>` : ''}
-        <div class="field-row">
+        ${f.type==='Other'? `<div class="field"><label>Describe the Event Type</label><input data-field="customType" value="${esc(f.customType||'')}" placeholder="${isInternal?'e.g. Photo Shoot':'e.g. Bris, Vort, Studio Session'}"/></div>` : ''}
+        ${!isInternal? `<div class="field-row">
           <div class="field"><label>Client Email</label><input data-field="clientEmail" value="${esc(f.clientEmail||'')}" placeholder="name@example.com"/></div>
           <div class="field"><label>Client Phone</label><input data-field="clientPhone" value="${esc(f.clientPhone||'')}" placeholder="(555) 555-5555"/></div>
-        </div>
+        </div>` : ''}
         <div class="field"><label>Date</label><input type="date" data-field="date" value="${f.date||''}"/></div>
         <div class="field-row">
           <div class="field"><label>Start Time</label><input type="time" data-field="time" value="${f.time||'19:00'}"/></div>
           <div class="field"><label>End Time</label><input type="time" data-field="endTime" value="${f.endTime||''}"/></div>
         </div>
-        <div class="field"><label>Venue Name</label><input data-field="venue" value="${esc(f.venue||'')}" placeholder="Ateres Chaya Hall"/></div>
+        <div class="field"><label>Venue Name</label><input data-field="venue" value="${esc(f.venue||'')}" placeholder="${isInternal?'Studio name':'Ateres Chaya Hall'}"/></div>
         <div class="field-row">
           <div class="field"><label>City</label><input data-field="city" value="${esc(f.city||'')}" placeholder="Lakewood"/></div>
           <div class="field"><label>State</label><input data-field="state" value="${esc(f.state||'')}" placeholder="NJ"/></div>
         </div>
         <div class="field-row">
-          <div class="field"><label>Price</label><input type="number" data-field="price" value="${f.price||''}" placeholder="4500"/></div>
+          ${!isInternal? `<div class="field"><label>Price</label><input type="number" data-field="price" value="${f.price||''}" placeholder="4500"/></div>` : ''}
           <div class="field" style="justify-content:flex-end;flex-direction:row;align-items:center;gap:8px;padding-top:18px;">
             <input type="checkbox" id="flightck" data-field="flightNeeded" ${f.flightNeeded?'checked':''} style="width:16px;height:16px;"/>
-            <label for="flightck" style="text-transform:none;font-size:13px;color:var(--ink);font-weight:500;">Flight needed for this gig</label>
+            <label for="flightck" style="text-transform:none;font-size:13px;color:var(--ink);font-weight:500;">Flight needed</label>
           </div>
         </div>
-        ${renderLeadChargesSection(f)}
-        <button class="btn btn-primary btn-block" data-action="submit-lead" style="margin-top:6px;">Add Lead — Pencil into Calendar</button>
+        <div class="field" style="flex-direction:row;align-items:center;gap:8px;">
+          <input type="checkbox" id="transportck" data-field="groundTransportNeeded" ${f.groundTransportNeeded?'checked':''} style="width:16px;height:16px;"/>
+          <label for="transportck" style="text-transform:none;font-size:13px;color:var(--ink);font-weight:500;">Ground transport / driver needed</label>
+        </div>
+        ${!isInternal? renderLeadChargesSection(f) : ''}
+        <button class="btn btn-primary btn-block" data-action="submit-lead" style="margin-top:6px;">${isInternal? 'Add Internal Day — Pencil into Calendar' : 'Add Lead — Pencil into Calendar'}</button>
       </div>
     </div>
   </div>`;
@@ -1962,27 +2052,27 @@ function renderEventSheet(ev){
           <button class="icon-btn" data-action="toggle-event-menu">${ICO.kebab}</button>
           ${S.showEventMenu? `<div class="kebab-dropdown">
             <button class="kebab-item" data-action="share-event" data-id="${ev.id}">${ICO.share} Share</button>
-            <button class="kebab-item danger" data-action="delete-event" data-id="${ev.id}">${ICO.trash} Delete ${ev.status==='lead'?'Lead':'Gig'}</button>
+            <button class="kebab-item danger" data-action="delete-event" data-id="${ev.id}">${ICO.trash} Delete ${ev.unpaid?'Internal Day':ev.status==='lead'?'Lead':'Gig'}</button>
           </div>`:''}
           <button class="icon-btn" data-action="close-sheet">${ICO.x}</button>
         </div>
       </div>
       <div class="sheet-body">
 
-        <div class="timeline">
+        ${!ev.unpaid ? `<div class="timeline">
           ${steps.map((s,i)=>`<div class="tl-step ${i<curIdx?'done':''} ${i===curIdx?'current':''}"><span class="tl-line"></span>
             <span class="tl-dot">${i<curIdx?ICO.check:i+1}</span><span class="tl-label">${s.label}</span></div>`).join('')}
-        </div>
+        </div>` : ''}
 
         <div class="card card-pad" style="display:flex;flex-direction:column;gap:9px;">
-          <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.pin} Client</span><strong>${esc(ev.clientName)}</strong></div>
+          ${!ev.unpaid ? `<div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.pin} Client</span><strong>${esc(ev.clientName)}</strong></div>` : ''}
           <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">Type</span><strong>${esc(ev.type)}</strong></div>
           <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.clock} Date &amp; Time</span><strong class="u-mono">${fmtDate(ev.date)} · ${fmtTimeRange(ev.time, ev.endTime)}</strong></div>
           <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.pin} Venue</span><strong style="text-align:right;">${ev.venue? esc(ev.venue) : `<span style="color:var(--ink-3);font-weight:500;">TBD</span>`}${(ev.city||ev.state)?`<br/><span style="font-weight:500;color:var(--ink-2);">${esc(ev.city)}${ev.city&&ev.state?', ':''}${esc(ev.state)}</span>`:''}</strong></div>
-          ${isAdmin?`<div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.mail} Contact</span><strong style="text-align:right;">${esc(ev.clientEmail)}<br/><span style="font-weight:500;color:var(--ink-2);">${esc(ev.clientPhone)}</span></strong></div>`:''}
+          ${isAdmin && !ev.unpaid?`<div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.mail} Contact</span><strong style="text-align:right;">${esc(ev.clientEmail)}<br/><span style="font-weight:500;color:var(--ink-2);">${esc(ev.clientPhone)}</span></strong></div>`:''}
         </div>
 
-        <button class="btn" data-action="view-contract" data-id="${ev.id}" style="justify-content:flex-start;">${ICO.leads} ${ev.status==='lead'?'Preview Draft Contract':'View Contract'}</button>
+        ${!ev.unpaid ? `<button class="btn" data-action="view-contract" data-id="${ev.id}" style="justify-content:flex-start;">${ICO.leads} ${ev.status==='lead'?'Preview Draft Contract':'View Contract'}</button>` : ''}
 
         ${renderConflictWarning(ev)}
         ${isInternational(ev) && !ev.intlOpportunityDismissed && !isPast(ev.date) ? `<div class="card card-pad" style="border-color:var(--accent);background:var(--accent-wash);">
@@ -1993,7 +2083,12 @@ function renderEventSheet(ev){
           ${isAdmin? `<p style="font-size:12.5px;color:var(--accent-ink);margin:6px 0 0;">Worth reaching out to contacts nearby — a good window to line up more bookings while ${esc(a.name.split(' ')[0])} is already out there.</p>` : `<p style="font-size:12.5px;color:var(--accent-ink);margin:6px 0 0;">Let the office know if you have contacts nearby — good window to add more bookings on this trip.</p>`}
         </div>` : ''}
         ${renderFlightBlock(ev, isAdmin)}
-        ${renderLedger(ev, isAdmin)}
+        ${renderGroundTransportBlock(ev, isAdmin)}
+        ${(ev.flightBooked || ev.groundTransportBooked) ? `<div style="display:flex;gap:8px;">
+          <button class="btn" style="flex:1;justify-content:flex-start;" data-action="view-itinerary" data-id="${ev.id}">${ICO.suitcase} View Itinerary</button>
+          ${isAdmin? `<button class="btn btn-sm" data-action="email-itinerary" data-id="${ev.id}">${ICO.mail} Email to Artist</button>` : ''}
+        </div>` : ''}
+        ${!ev.unpaid ? renderLedger(ev, isAdmin) : ''}
         ${renderPrepSheets(ev, isAdmin)}
         ${!isAdmin ? `<div>
             <div style="display:flex;gap:8px;">
@@ -2047,6 +2142,26 @@ function renderFlightBlock(ev, isAdmin){
       <div class="ledger-row"><span>Depart</span><span class="amt">${esc(fmtFlightDateTime(f.depart))}</span></div>
       <div class="ledger-row"><span>Arrive</span><span class="amt">${esc(fmtFlightDateTime(f.arrive))}</span></div>
       ${f.notes?`<div class="ledger-row"><span>Notes</span><span class="amt">${esc(f.notes)}</span></div>`:''}
+    </div>
+  </div>`;
+}
+function renderGroundTransportBlock(ev, isAdmin){
+  if(!ev.groundTransportNeeded) return isAdmin ? `<button class="btn btn-ghost" data-action="toggle-ground-transport" data-id="${ev.id}" style="justify-content:flex-start;color:var(--ink-2);">${ICO.car} Mark ground transport needed</button>` : '';
+  if(!ev.groundTransportBooked){
+    return `<div class="card card-pad" style="border-color:var(--warn);background:var(--warn-wash);">
+      <div style="display:flex;align-items:center;gap:8px;color:var(--warn-ink);font-weight:700;font-size:13px;">${ICO.car} Driver needed — bookkeeping notified</div>
+      ${isAdmin ? `<button class="btn btn-sm" style="margin-top:10px;" data-action="open-transport-form" data-id="${ev.id}">Add driver info</button>` : `<p style="font-size:12.5px;color:var(--warn-ink);margin:8px 0 0;">Bookkeeping is arranging a driver. You'll be notified once it's booked.</p>`}
+    </div>`;
+  }
+  const g = ev.groundTransport;
+  return `<div class="card card-pad">
+    <div style="display:flex;align-items:center;gap:8px;font-weight:700;font-size:13px;color:var(--good-ink);">${ICO.car} Driver booked</div>
+    <div class="ledger" style="margin-top:8px;">
+      <div class="ledger-row"><span>Driver</span><span class="amt">${esc(g.driverName)}</span></div>
+      <div class="ledger-row"><span>Phone</span><span class="amt">${esc(g.driverPhone)}</span></div>
+      <div class="ledger-row"><span>Pickup</span><span class="amt">${esc(fmtFlightDateTime(g.pickupTime))} · ${esc(g.pickupLocation)}</span></div>
+      <div class="ledger-row"><span>Drop-off</span><span class="amt">${esc(fmtFlightDateTime(g.dropoffTime))} · ${esc(g.dropoffLocation)}</span></div>
+      ${g.notes?`<div class="ledger-row"><span>Notes</span><span class="amt">${esc(g.notes)}</span></div>`:''}
     </div>
   </div>`;
 }
@@ -2154,6 +2269,34 @@ function renderFlightFormOverlay(){
   </div>`;
 }
 
+function renderTransportFormOverlay(){
+  const ev = getEvent(S.eventId); if(!ev) return '';
+  const f = S.transportForm;
+  return `<div class="overlay center" data-action="transport-overlay-close">
+    <div class="modal" data-stop data-form="transport" style="width:420px;">
+      <div class="sheet-head"><h2 style="font-size:1.2rem;">Ground Transport Info</h2><button class="icon-btn" data-action="close-transport-form">${ICO.x}</button></div>
+      <div class="sheet-body">
+        <div class="field"><label>Driver Name</label><input data-field="driverName" value="${esc(f.driverName||'')}" placeholder="Yossi K."/></div>
+        <div class="field"><label>Driver Phone</label><input data-field="driverPhone" value="${esc(f.driverPhone||'')}" placeholder="(347) 555-1234"/></div>
+        <div class="u-label" style="margin-top:4px;">Pickup</div>
+        <div class="field-row">
+          <div class="field"><label>Date</label><input type="date" data-field="pickupDate" value="${f.pickupDate||''}"/></div>
+          <div class="field"><label>Time</label><input type="time" data-field="pickupTime" value="${f.pickupTime||''}"/></div>
+        </div>
+        <div class="field"><label>Pickup Location</label><input data-field="pickupLocation" value="${esc(f.pickupLocation||'')}" placeholder="Airport / home"/></div>
+        <div class="u-label" style="margin-top:4px;">Drop-off</div>
+        <div class="field-row">
+          <div class="field"><label>Date</label><input type="date" data-field="dropoffDate" value="${f.dropoffDate||''}"/></div>
+          <div class="field"><label>Time</label><input type="time" data-field="dropoffTime" value="${f.dropoffTime||''}"/></div>
+        </div>
+        <div class="field"><label>Drop-off Location</label><input data-field="dropoffLocation" value="${esc(f.dropoffLocation||'')}" placeholder="Venue"/></div>
+        <div class="field"><label>Notes</label><input data-field="notes" value="${esc(f.notes||'')}" placeholder="Sedan, one-way"/></div>
+        <button class="btn btn-primary btn-block" data-action="save-transport" data-id="${ev.id}">Save &amp; Notify Artist</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderContractDoc(){
   const ev = getEvent(S.eventId); if(!ev) return '';
   const artist = artistById(ev.artistId);
@@ -2241,6 +2384,55 @@ function renderContractDoc(){
   </div>`;
 }
 
+function renderItineraryDoc(){
+  const ev = getEvent(S.itineraryEventId); if(!ev) return '';
+  const artist = artistById(ev.artistId);
+  const f = ev.flight, g = ev.groundTransport;
+  return `<div class="overlay center" data-action="itinerary-overlay-close">
+    <div class="doc" data-stop>
+      <div class="sheet-head">
+        <h2 style="font-size:1.1rem;">Travel Itinerary</h2>
+        <div style="display:flex;gap:6px;">
+          <button class="icon-btn" data-action="print-itinerary" title="Print / Save as PDF"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2"/><rect x="6" y="14" width="12" height="7"/></svg></button>
+          <button class="icon-btn" data-action="close-itinerary">${ICO.x}</button>
+        </div>
+      </div>
+      <div class="doc-body">
+        <div class="doc-letterhead">
+          <div class="wordmark" style="font-size:1.1rem;"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP</div>
+          <span class="pill pill-good">Itinerary</span>
+        </div>
+        <div class="doc-title">${esc(artist.name.toUpperCase())}<br/><span style="font-size:.62em;letter-spacing:.06em;">${esc((ev.type||'').toUpperCase())}${ev.unpaid?'':` — ${esc((ev.clientName||'').toUpperCase())}`}</span></div>
+        <div class="doc-sub">${fmtDate(ev.date)}${ev.venue? ` &middot; ${esc(ev.venue)}` : ''}${(ev.city||ev.state)? `, ${esc(ev.city)}${ev.city&&ev.state?', ':''}${esc(ev.state)}` : ''}</div>
+
+        ${f ? `<div class="doc-section"><h3>${ICO.plane} Flight</h3>
+          <div class="doc-facts">
+            <div><span class="k">Airline</span><span>${esc(f.airline)}</span></div>
+            <div><span class="k">Confirmation</span><span>${esc(f.confirmation)}</span></div>
+            <div><span class="k">Depart</span><span>${esc(fmtFlightDateTime(f.depart))}</span></div>
+            <div><span class="k">Arrive</span><span>${esc(fmtFlightDateTime(f.arrive))}</span></div>
+          </div>
+          ${f.notes? `<p style="font-size:12.5px;color:var(--ink-2);margin:0;">${esc(f.notes)}</p>` : ''}
+        </div>` : ''}
+
+        ${g ? `<div class="doc-section"><h3>${ICO.car} Ground Transport</h3>
+          <div class="doc-facts">
+            <div><span class="k">Driver</span><span>${esc(g.driverName)}</span></div>
+            <div><span class="k">Driver Phone</span><span>${esc(g.driverPhone)}</span></div>
+            <div><span class="k">Pickup</span><span>${esc(fmtFlightDateTime(g.pickupTime))} &middot; ${esc(g.pickupLocation)}</span></div>
+            <div><span class="k">Drop-off</span><span>${esc(fmtFlightDateTime(g.dropoffTime))} &middot; ${esc(g.dropoffLocation)}</span></div>
+          </div>
+          ${g.notes? `<p style="font-size:12.5px;color:var(--ink-2);margin:0;">${esc(g.notes)}</p>` : ''}
+        </div>` : ''}
+
+        ${!f && !g ? `<p style="font-size:13px;color:var(--ink-3);">No travel arranged yet.</p>` : ''}
+
+        <div class="doc-foot">This is a mockup document for demonstration purposes.</div>
+      </div>
+    </div>
+  </div>`;
+}
+
 /* ============ ACTIONS ============ */
 function doSendContract(id){
   const ev = getEvent(id); ev.status='contract_sent';
@@ -2267,6 +2459,25 @@ function doSaveFlight(id){
   ev.flightBooked = true;
   logEvent(ev,'success',`Flight booked & added to itinerary — ${artistById(ev.artistId).name} notified.`);
   toast('Flight saved — artist notified.', 'success'); S.showFlightForm=false; saveEvents(); openEvent(id);
+}
+function doToggleGroundTransport(id){
+  const ev = getEvent(id); ev.groundTransportNeeded=true;
+  logEvent(ev,'system','Ground transport needed — bookkeeping notified.');
+  toast('Bookkeeping notified: ground transport needed.', 'system'); saveEvents(); openEvent(id);
+}
+function doSaveGroundTransport(id){
+  const ev = getEvent(id); const f=S.transportForm;
+  const pickupTime = f.pickupDate? `${f.pickupDate} ${f.pickupTime||'00:00'}` : '—';
+  const dropoffTime = f.dropoffDate? `${f.dropoffDate} ${f.dropoffTime||'00:00'}` : '—';
+  ev.groundTransport = {driverName:f.driverName||'—', driverPhone:f.driverPhone||'—', pickupTime, pickupLocation:f.pickupLocation||'—', dropoffTime, dropoffLocation:f.dropoffLocation||'—', notes:f.notes||''};
+  ev.groundTransportBooked = true;
+  logEvent(ev,'success',`Driver booked & added to itinerary — ${artistById(ev.artistId).name} notified.`);
+  toast('Driver saved — artist notified.', 'success'); S.showTransportForm=false; saveEvents(); openEvent(id);
+}
+function doEmailItinerary(id){
+  const ev = getEvent(id);
+  logEvent(ev,'email',`Travel itinerary emailed to ${artistById(ev.artistId).name}.`);
+  toast('Itinerary emailed to artist.', 'email'); saveEvents(); openEvent(id);
 }
 function doSendReminder(id){
   const ev = getEvent(id); ev.lastReminderSent = fmtISO(new Date());
@@ -2349,7 +2560,8 @@ function doShareEvent(id){
 }
 function doDeleteEvent(id){
   const ev = getEvent(id);
-  if(!confirm(`Delete this ${ev.status==='lead'?'lead':'gig'} for ${ev.clientName} (${artistById(ev.artistId).name})? This can't be undone.`)) return;
+  const what = ev.unpaid ? `this ${ev.type} for ${artistById(ev.artistId).name}` : `this ${ev.status==='lead'?'lead':'gig'} for ${ev.clientName} (${artistById(ev.artistId).name})`;
+  if(!confirm(`Delete ${what}? This can't be undone.`)) return;
   S.events = S.events.filter(e=>e.id!==id);
   saveEvents();
   toast('Deleted.', 'system');
@@ -2465,19 +2677,30 @@ function doSendProjectUpdate(id){
 }
 function doSubmitLead(){
   const f = S.newLeadForm;
-  if(!f.artistId || !(f.clientName||'').trim() || !f.date){ toast('Pick an artist and enter a client name and date.', 'system'); return; }
-  const price = Number(f.price)||0; const commission = Math.round(price*0.15);
+  const isInternal = f.kind==='internal';
+  if(!f.artistId || !f.date || (!isInternal && !(f.clientName||'').trim())){
+    toast(isInternal? 'Pick an artist and a date.' : 'Pick an artist and enter a client name and date.', 'system'); return;
+  }
+  const price = isInternal ? 0 : (Number(f.price)||0);
+  const commission = isInternal ? 0 : Math.round(price*0.15);
+  const typeList = isInternal ? INTERNAL_EVENT_TYPES : EVENT_TYPES;
+  const resolvedType = (f.type==='Other'? (f.customType||'').trim()||'Other' : f.type)||typeList[0];
   const ev = {
-    id:'EV-'+(EVID++), artistId:f.artistId, type: (f.type==='Other'? (f.customType||'').trim()||'Other' : f.type)||EVENT_TYPES[0], clientName:f.clientName,
-    clientEmail: f.clientEmail||'', clientPhone: f.clientPhone||'', date: f.date, time: f.time||'19:00', endTime: f.endTime||null,
+    id:'EV-'+(EVID++), artistId:f.artistId, type: resolvedType,
+    unpaid: isInternal,
+    clientName: isInternal? null : f.clientName,
+    clientEmail: isInternal? '' : (f.clientEmail||''), clientPhone: isInternal? '' : (f.clientPhone||''),
+    date: f.date, time: f.time||'19:00', endTime: f.endTime||null,
     venue: f.venue||'', city: f.city||'', state: f.state||'',
-    price, commission, balance: price-commission, status:'lead', depositReceived:false, depositReceivedDate:null,
+    price, commission, balance: price-commission, status: isInternal? 'scheduled':'lead', depositReceived:false, depositReceivedDate:null,
     balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
-    flightNeeded: !!f.flightNeeded, flightBooked:false, flight:null, charges: f.charges||[], prepSheets:[], createdAt: fmtISO(new Date()),
-    log:[{ts:new Date().toISOString(), type:'system', text:`Lead created for ${artistById(f.artistId).name} — client info entered by management.`}],
+    flightNeeded: !!f.flightNeeded, flightBooked:false, flight:null,
+    groundTransportNeeded: !!f.groundTransportNeeded, groundTransportBooked:false, groundTransport:null,
+    charges: isInternal? [] : (f.charges||[]), prepSheets:[], createdAt: fmtISO(new Date()),
+    log:[{ts:new Date().toISOString(), type:'system', text: isInternal? `${resolvedType} scheduled for ${artistById(f.artistId).name}.` : `Lead created for ${artistById(f.artistId).name} — client info entered by management.`}],
   };
   S.events.unshift(ev); saveEvents();
-  toast(`Lead added — penciled in on ${artistById(f.artistId).name}'s calendar.`, 'success');
+  toast(isInternal? `Internal day added — penciled in on ${artistById(f.artistId).name}'s calendar.` : `Lead added — penciled in on ${artistById(f.artistId).name}'s calendar.`, 'success');
   if(findConflicts(ev).length) toast(`⚠ Scheduling conflict — ${artistById(f.artistId).name} already has something this date.`, 'system');
   S.showNewLead=false; S.newLeadForm={}; openEvent(ev.id);
 }
@@ -2492,6 +2715,14 @@ function bindGlobal(){
     holder.innerHTML = renderFlightFormOverlay();
     document.body.appendChild(holder);
   }
+  const staleTransport = document.getElementById('transportOverlayHost');
+  if(staleTransport) staleTransport.remove();
+  if(S.showTransportForm){
+    const holder = document.createElement('div');
+    holder.id = 'transportOverlayHost';
+    holder.innerHTML = renderTransportFormOverlay();
+    document.body.appendChild(holder);
+  }
   const staleContract = document.getElementById('contractPrintHost');
   if(staleContract) staleContract.remove();
   if(S.showContract){
@@ -2500,13 +2731,21 @@ function bindGlobal(){
     holder.innerHTML = renderContractDoc();
     document.body.appendChild(holder);
   }
+  const staleItinerary = document.getElementById('itineraryPrintHost');
+  if(staleItinerary) staleItinerary.remove();
+  if(S.showItinerary){
+    const holder = document.createElement('div');
+    holder.id = 'itineraryPrintHost';
+    holder.innerHTML = renderItineraryDoc();
+    document.body.appendChild(holder);
+  }
   document.querySelectorAll('[data-field]').forEach(el=>{
     el.addEventListener('input', e=>{
       const key = el.getAttribute('data-field');
       const form = el.closest('[data-form]')?.getAttribute('data-form');
       if(form==='task'){ S.newTaskText = el.value; return; }
       if(form==='comment'){ S.newCommentText = el.value; return; }
-      const formTargets = { flight:S.flightForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm };
+      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm };
       const target = formTargets[form] || S.newLeadForm;
       target[key] = el.type==='checkbox'? el.checked : el.value;
     });
@@ -2540,6 +2779,7 @@ function bindGlobal(){
       case 'open-new-lead': closeAllOverlays(); S.newLeadForm={date:'',time:'19:00'}; S.showNewLead=true; render(); break;
       case 'close-sheet': closeSheet(); break;
       case 'pick-artist': S.newLeadForm.artistId = id; applyStandardPricing(); render(); break;
+      case 'pick-booking-kind': { const kind = t.getAttribute('data-kind'); S.newLeadForm.kind = kind; S.newLeadForm.type = null; render(); break; }
       case 'submit-lead': doSubmitLead(); break;
       case 'add-lead-charge': {
         const f = S.newLeadForm;
@@ -2573,6 +2813,11 @@ function bindGlobal(){
       case 'close-flight-form': S.showFlightForm=false; render(); break;
       case 'flight-overlay-close': if(e.target===t) { S.showFlightForm=false; render(); } break;
       case 'save-flight': doSaveFlight(id); break;
+      case 'toggle-ground-transport': doToggleGroundTransport(id); break;
+      case 'open-transport-form': S.transportForm={}; S.showTransportForm=true; render(); break;
+      case 'close-transport-form': S.showTransportForm=false; render(); break;
+      case 'transport-overlay-close': if(e.target===t) { S.showTransportForm=false; render(); } break;
+      case 'save-transport': doSaveGroundTransport(id); break;
       case 'toggle-add-charge': S.showAddCharge=!S.showAddCharge; S.addChargeForm={}; render(); break;
       case 'confirm-add-charge': doAddCharge(id); break;
       case 'remove-charge': doRemoveCharge(id, t.getAttribute('data-chargeid')); break;
@@ -2581,6 +2826,11 @@ function bindGlobal(){
       case 'close-contract': S.showContract=false; render(); break;
       case 'contract-overlay-close': if(e.target===t) { S.showContract=false; render(); } break;
       case 'print-contract': window.print(); break;
+      case 'view-itinerary': S.itineraryEventId=id; S.showItinerary=true; render(); break;
+      case 'close-itinerary': S.showItinerary=false; S.itineraryEventId=null; render(); break;
+      case 'itinerary-overlay-close': if(e.target===t) { S.showItinerary=false; S.itineraryEventId=null; render(); } break;
+      case 'print-itinerary': window.print(); break;
+      case 'email-itinerary': doEmailItinerary(id); break;
       case 'send-reminder': doSendReminder(id); break;
       case 'preview-reminder': S.showReminderPreview=true; render(); break;
       case 'close-reminder-preview': S.showReminderPreview=false; render(); break;
