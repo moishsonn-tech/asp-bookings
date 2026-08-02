@@ -387,8 +387,8 @@ body:has(.bottom-nav) .install-banner{ bottom:80px; }
   .doc-body{ padding:22px 18px 30px; }
   .doc-parties, .doc-facts, .doc-sign{ grid-template-columns:1fr; gap:14px; }
   .doc-title{ font-size:1.4rem; }
-  .cal-grid{ gap:3px; grid-auto-rows:1fr; }
-  .cal-cell{ height:64px; padding:4px 3px; gap:2px; overflow:hidden; }
+  .cal-grid{ gap:3px; }
+  .cal-cell{ aspect-ratio:1; padding:4px 3px; gap:2px; overflow:hidden; min-height:0; }
   .cal-date{ font-size:10.5px; }
   .cal-evt{ font-size:9px; padding:1px 3px; }
   .cal-dow{ font-size:9px; }
@@ -403,14 +403,14 @@ body:has(.bottom-nav) .install-banner{ bottom:80px; }
   .bn-item span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .bn-item.active{ color:var(--ink); font-weight:700; background:var(--surface); box-shadow:var(--shadow-sm); }
   .bn-item.active .ico{ color:var(--ink-3); }
-  .bn-item[data-view="projects"], .bn-item[data-view="a_projects"], .bn-item[data-view="pricing"]{ display:none; }
+  .bn-item[data-view="projects"], .bn-item[data-view="a_projects"], .bn-item[data-view="pricing"], .bn-item[data-view="financials"]{ display:none; }
 }
 @media (max-width: 480px){
   .grid-3{ grid-template-columns:1fr 1fr; }
   .newlead-btn{ padding:9px 12px; flex:none; }
   .chip-name{ display:none; }
   .user-chip{ padding:4px; }
-  .cal-cell{ height:52px; padding:3px 2px; }
+  .cal-cell{ aspect-ratio:1; padding:3px 2px; }
   .cal-evt span{ max-width:34px; }
   .stat-tile .val{ font-size:1.3rem; }
   .bn-item span{ display:none; }
@@ -607,7 +607,7 @@ const isAdminUser = (id)=>ADMIN_USERS.some(u=>u.id===id);
 const adminById = (id)=>ADMIN_USERS.find(u=>u.id===id);
 
 const EVENT_TYPES = ['Wedding','Bar Mitzvah','Sheva Brachos','Concert','Melave Malka','Chinese Auction','Private Simcha','Other'];
-const INTERNAL_EVENT_TYPES = ['Recording Day','Filming Day','Rehearsal','Studio Session','Other'];
+const INTERNAL_EVENT_TYPES = ['Recording Day','Filming Day','Rehearsal','Studio Session','Unavailable','Other'];
 
 /* ============ PRICING ============ */
 const PRICING_LS_KEY = 'asp_mock_pricing_v1';
@@ -791,6 +791,8 @@ let S = {
   transportForm:{},
   showItinerary:false,
   itineraryEventId:null,
+  showBlockTime:false,
+  blockTimeForm:{},
   showContract:false,
   showAddCharge:false,
   addChargeForm:{},
@@ -874,7 +876,7 @@ function getEvent(id){ return S.events.find(e=>e.id===id); }
 function fmtDate(iso){ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-US',{weekday:'short', month:'short', day:'numeric', year:'numeric'}); }
 function fmtDateShort(iso){ const d=new Date(iso+'T00:00:00'); return d.toLocaleDateString('en-US',{month:'short', day:'numeric'}); }
 function fmtTime(t){ const [h,m]=t.split(':').map(Number); const ap=h>=12?'PM':'AM'; const hh=((h+11)%12)+1; return `${hh}:${String(m).padStart(2,'0')} ${ap}`; }
-function fmtTimeRange(start, end){ return end? `${fmtTime(start)} – ${fmtTime(end)}` : fmtTime(start); }
+function fmtTimeRange(start, end){ if(start==='00:00' && !end) return 'All day'; return end? `${fmtTime(start)} – ${fmtTime(end)}` : fmtTime(start); }
 function hoursBetween(start, end){
   if(!start || !end) return null;
   const [sh,sm] = start.split(':').map(Number), [eh,em] = end.split(':').map(Number);
@@ -984,7 +986,7 @@ S.showInstallBanner = shouldShowInstallBanner();
 function closeAllOverlays(){
   S.eventId=null; S.projectId=null; S.showNewLead=false; S.showAddArtist=false; S.newArtistWelcome=null;
   S.dayListDate=null; S.showNewProject=false; S.showFlightForm=false; S.showContract=false;
-  S.showTransportForm=false; S.showItinerary=false; S.itineraryEventId=null;
+  S.showTransportForm=false; S.showItinerary=false; S.itineraryEventId=null; S.showBlockTime=false;
   S.showAddCharge=false; S.showEventMenu=false; S.showDraftUpdate=false; S.projectTab='tasks'; S.showReminderPreview=false;
   S.showMobileMenu=false;
 }
@@ -1034,6 +1036,7 @@ function exportCSV(){
 function render(){
   const app = document.getElementById('app');
   const prevScroll = { sheet: document.querySelector('.sheet')?.scrollTop, modal: document.querySelector('.modal')?.scrollTop };
+  const hadOverlay = !!document.querySelector('.overlay');
   if(!S.user){ app.innerHTML = renderLogin() + renderInstallBanner(); bindGlobal(); return; }
   const isAdmin = isAdminUser(S.user);
   app.innerHTML = `
@@ -1057,6 +1060,7 @@ function render(){
     ${renderBottomNav(isAdmin)}
     ${S.showMobileMenu ? renderMobileMenu(isAdmin) : ''}
     ${S.showNewLead ? renderNewLeadModal() : ''}
+    ${S.showBlockTime ? renderBlockTimeModal() : ''}
     ${S.showAddArtist ? renderAddArtistModal() : ''}
     ${S.newArtistWelcome ? renderWelcomeEmailPreview() : ''}
     ${S.dayListDate ? renderDayList() : ''}
@@ -1067,6 +1071,9 @@ function render(){
     ${renderInstallBanner()}
   `;
   bindGlobal();
+  if(hadOverlay){
+    document.querySelectorAll('.overlay, .modal, .sheet, .doc').forEach(el=>{ el.style.animationDuration='0.001ms'; });
+  }
   if(prevScroll.sheet){ const s=document.querySelector('.sheet'); if(s) s.scrollTop = prevScroll.sheet; }
   if(prevScroll.modal){ const m=document.querySelector('.modal'); if(m) m.scrollTop = prevScroll.modal; }
 }
@@ -1082,7 +1089,7 @@ function renderDayList(){
         ${evs.length? evs.map(e=>{const a=artistById(e.artistId); const sm=statusMeta(e);
           return `<button class="chooser-row" data-action="open-event-from-day" data-id="${e.id}">
             <span class="avatar" data-slot="${a.slot}" style="width:32px;height:32px;font-size:11px;">${a.initials}</span>
-            <span style="flex:1;min-width:0;"><strong>${fmtTime(e.time)} — ${isAdmin?esc(a.name):esc(e.clientName||e.type)}</strong><span class="chooser-email">${isAdmin?esc(e.clientName||e.type):esc(e.venue)} &middot; ${esc(e.type)}</span></span>
+            <span style="flex:1;min-width:0;"><strong>${e.time==='00:00'?'All day':fmtTime(e.time)} — ${isAdmin?esc(a.name):esc(e.clientName||e.type)}</strong><span class="chooser-email">${isAdmin?esc(e.clientName||e.type):esc(e.venue)} &middot; ${esc(e.type)}</span></span>
             <span class="pill ${sm.cls}">${sm.label}</span>
           </button>`;}).join('') : `<p style="color:var(--ink-3);font-size:13px;margin:0;">Nothing on this date.</p>`}
       </div>
@@ -1091,11 +1098,13 @@ function renderDayList(){
 }
 
 function pageTitle(){
-  if(S.eventId || S.showNewLead) return document.querySelector('.topbar h1')?.textContent || '';
+  if(S.showNewLead) return (S.newLeadForm.kind==='internal') ? 'New Internal Day' : 'New Lead';
+  if(S.eventId){ const ev=getEvent(S.eventId); return ev ? artistById(ev.artistId).name : ''; }
   const t = {
     dashboard:'Dashboard', calendar:'Calendar', leads:'Open Leads', artists:'Artists', financials:'Financials', projects:'Projects', pricing:'Pricing',
+    travel:'Travel', international:'International Opportunities',
     artist_detail: artistById(S.artistDetailId)?.name || '',
-    a_dashboard:'My Dashboard', a_calendar:'Calendar', a_gigs:'My Gigs', a_financials:'Financials', a_projects:'My Projects', settings:'Settings',
+    a_dashboard:'My Dashboard', a_calendar:'Calendar', a_gigs:'My Gigs', a_travel:'Travel', a_financials:'Financials', a_projects:'My Projects', settings:'Settings',
   };
   return t[S.view] || 'ASP Bookings';
 }
@@ -1116,7 +1125,7 @@ const MGMT_NAV_ITEMS = [
   ['artists','Artists',ICO.artists], ['travel','Travel',ICO.suitcase], /* ['projects','Projects',ICO.kanban], -- hidden until real projects are in use, see asp_bookings_project memory */ ['pricing','Pricing',ICO.tag], ['financials','Financials',ICO.money],
 ];
 const ARTIST_NAV_ITEMS = [
-  ['a_dashboard','Dashboard',ICO.dash], ['a_calendar','Calendar',ICO.cal], ['a_gigs','My Gigs',ICO.mic], ['a_financials','Financials',ICO.money], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
+  ['a_dashboard','Dashboard',ICO.dash], ['a_calendar','Calendar',ICO.cal], ['a_gigs','My Gigs',ICO.mic], ['a_travel','Travel',ICO.suitcase], ['a_financials','Financials',ICO.money], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
 ];
 const APP_VERSION = 'v1.0.0';
 const OVERTIME_PER_HALF_HOUR = 250;
@@ -1191,12 +1200,13 @@ function renderView(){
     if(S.view==='projects') return renderProjectsBoard();
     if(S.view==='pricing') return renderPricingPage();
     if(S.view==='international') return renderInternationalPage();
-    if(S.view==='travel') return renderTravelPage();
+    if(S.view==='travel') return renderTravelPage(S.events);
   } else {
     if(S.view==='a_dashboard') return renderArtistDashboard(S.user);
-    if(S.view==='a_calendar') return renderCalendarPage(eventsFor(S.user), {noLegend:true, singleArtist:true});
+    if(S.view==='a_calendar') return renderCalendarPage(eventsFor(S.user), {noLegend:true, singleArtist:true, showBlockButton:true});
     if(S.view==='a_gigs') return renderArtistGigs(S.user);
     if(S.view==='a_financials') return renderArtistFinancials(S.user);
+    if(S.view==='a_travel') return renderTravelPage(eventsFor(S.user), {singleArtist:true});
     if(S.view==='a_projects') return renderArtistProjects(S.user);
   }
   return '';
@@ -1320,6 +1330,7 @@ function renderMgmtDashboard(){
   const upcoming30 = S.events.filter(e=>!isPast(e.date) && daysUntil(e.date)<=30 && ['booked','paid'].includes(e.status));
   const conflictPairs = allConflictPairs().filter(([a,b])=>!isPast(a.date)||!isPast(b.date));
   const intlTrips = S.events.filter(e=>isInternational(e) && !e.intlOpportunityDismissed && !isPast(e.date) && ['booked','paid'].includes(e.status)).sort((a,b)=>a.date.localeCompare(b.date));
+  const needsTravel = S.events.filter(e=>!isPast(e.date) && ((e.flightNeeded && !e.flightBooked) || (e.groundTransportNeeded && !e.groundTransportBooked)));
   const isCEO = S.user==='admin_ceo';
 
   return `
@@ -1328,7 +1339,10 @@ function renderMgmtDashboard(){
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="calendar"><span class="u-label">Upcoming Gigs · 30 days</span><span class="val">${upcoming30.length}</span><span class="sub">Booked or paid, next 30 days</span></div>
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Open Leads</span><span class="val">${open.length}</span><span class="sub">Awaiting contract / deposit</span></div>
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Awaiting Balance</span><span class="val">${awaitingBalance.length}</span><span class="sub">Booked, balance not yet in</span></div>
+  </div>
+  <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
     ${statTile('International Opportunities', intlTrips.length, 'Artist traveling — worth adding nearby bookings', 'international')}
+    ${statTile('Travel To Arrange', needsTravel.length, 'Flights or drivers still needed', 'travel')}
   </div>
 
   ${(!isCEO && conflictPairs.length) ? `
@@ -1371,15 +1385,16 @@ function renderInternationalPage(){
   </div>`}
   `;
 }
-function renderTravelPage(){
+function renderTravelPage(events, opts={}){
+  const showArtist = !opts.singleArtist;
   const upcoming = e=>!isPast(e.date);
-  const needsFlight = S.events.filter(e=>upcoming(e) && e.flightNeeded && !e.flightBooked);
-  const needsTransport = S.events.filter(e=>upcoming(e) && e.groundTransportNeeded && !e.groundTransportBooked);
-  const readyItineraries = S.events.filter(e=>upcoming(e) && (e.flightBooked || e.groundTransportBooked)).sort((a,b)=>a.date.localeCompare(b.date));
+  const needsFlight = events.filter(e=>upcoming(e) && e.flightNeeded && !e.flightBooked);
+  const needsTransport = events.filter(e=>upcoming(e) && e.groundTransportNeeded && !e.groundTransportBooked);
+  const readyItineraries = events.filter(e=>upcoming(e) && (e.flightBooked || e.groundTransportBooked)).sort((a,b)=>a.date.localeCompare(b.date));
   const travelRow = (e, needLabel)=>{
     const a = artistById(e.artistId);
     return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;" data-action="open-event" data-id="${e.id}">
-      <span><strong>${esc(a.name)}</strong> — ${esc(e.type)}${e.clientName?` (${esc(e.clientName)})`:''}, ${fmtDateShort(e.date)}</span>
+      <span>${showArtist?`<strong>${esc(a.name)}</strong> — `:''}${esc(e.type)}${e.clientName?` (${esc(e.clientName)})`:''}, ${fmtDateShort(e.date)}</span>
       <span class="pill pill-warn">${needLabel}</span>
     </div>`;
   };
@@ -1394,12 +1409,12 @@ function renderTravelPage(){
   <div class="section-head"><h2>Upcoming Itineraries (${readyItineraries.length})</h2></div>
   ${!readyItineraries.length ? `<div class="card empty">Nothing here yet.</div>` : `
   <div class="card u-scroll-x table-cards"><table>
-    <thead><tr><th>Artist</th><th>Type</th><th>Date</th><th>Flight</th><th>Ground</th><th></th></tr></thead>
+    <thead><tr>${showArtist?'<th>Artist</th>':''}<th>Type</th><th>Date</th><th>Flight</th><th>Ground</th><th></th></tr></thead>
     <tbody>
       ${readyItineraries.map(e=>{
         const a = artistById(e.artistId);
         return `<tr>
-          <td data-label="Artist"><span style="display:flex;align-items:center;gap:7px;"><span class="avatar" data-slot="${a.slot}" style="width:22px;height:22px;font-size:9px;">${a.initials}</span>${esc(a.name)}</span></td>
+          ${showArtist?`<td data-label="Artist"><span style="display:flex;align-items:center;gap:7px;"><span class="avatar" data-slot="${a.slot}" style="width:22px;height:22px;font-size:9px;">${a.initials}</span>${esc(a.name)}</span></td>`:''}
           <td data-label="Type">${esc(e.type)}</td><td data-label="Date" class="u-mono">${fmtDateShort(e.date)}</td>
           <td data-label="Flight">${e.flightBooked?`<span class="pill pill-good">Booked</span>`:'—'}</td>
           <td data-label="Ground">${e.groundTransportBooked?`<span class="pill pill-good">Booked</span>`:'—'}</td>
@@ -1434,6 +1449,7 @@ function renderCalendarPage(events, opts={}){
         <strong style="font-family:var(--font-display);font-size:1.05rem;min-width:150px;text-align:center;">${monthLabel}</strong>
         <button class="icon-btn" data-action="cal-next">${ICO.chev('r')}</button>
         <button class="btn btn-sm btn-ghost" data-action="cal-today">Today</button>
+        ${opts.showBlockButton ? `<button class="btn btn-sm" data-action="open-block-time" style="margin-left:auto;">${ICO.clock} Block Time</button>` : ''}
       </div>
       ${opts.showFilter ? `<div class="chip-row">${ARTISTS.map(a=>`<button class="filter-chip ${S.calArtistFilter.includes(a.id)?'sel':''}" data-action="cal-filter" data-id="${a.id}"><span class="dot" data-slot="${a.slot}"></span>${a.name.split(' ')[0]}</button>`).join('')}</div>`:''}
     </div>
@@ -1445,7 +1461,7 @@ function renderCalendarPage(events, opts={}){
         const max = opts.compact?2:3;
         return `<div class="cal-cell ${c.iso===todayIso?'today':''}">
           <span class="cal-date">${c.d}</span>
-          ${evs.slice(0,max).map(e=>{const a=artistById(e.artistId); const label = opts.singleArtist? (e.clientName||e.type).split(' ')[0] : a.name.split(' ')[0]; return `<div class="cal-evt" data-action="open-event" data-id="${e.id}"><span class="dot" data-slot="${a.slot}"></span><span>${fmtTime(e.time).replace(':00','')} ${esc(label)}</span></div>`;}).join('')}
+          ${evs.slice(0,max).map(e=>{const a=artistById(e.artistId); const label = opts.singleArtist? (e.clientName||e.type).split(' ')[0] : a.name.split(' ')[0]; const timePrefix = e.time==='00:00' ? '' : fmtTime(e.time).replace(':00','')+' '; return `<div class="cal-evt" data-action="open-event" data-id="${e.id}"><span class="dot" data-slot="${a.slot}"></span><span>${timePrefix}${esc(label)}</span></div>`;}).join('')}
           ${evs.length>max? `<span class="cal-more" data-action="open-day" data-date="${c.iso}">+${evs.length-max} more</span>`:''}
         </div>`;
       }).join('')}
@@ -1962,6 +1978,24 @@ function renderNewLeadModal(){
         </div>
         ${!isInternal? renderLeadChargesSection(f) : ''}
         <button class="btn btn-primary btn-block" data-action="submit-lead" style="margin-top:6px;">${isInternal? 'Add Internal Day — Pencil into Calendar' : 'Add Lead — Pencil into Calendar'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderBlockTimeModal(){
+  const f = S.blockTimeForm;
+  return `<div class="overlay center" data-action="overlay-close">
+    <div class="modal" data-stop data-form="blocktime" style="width:380px;">
+      <div class="sheet-head"><h2 style="font-size:1.3rem;">Block Time</h2><button class="icon-btn" data-action="close-sheet">${ICO.x}</button></div>
+      <div class="sheet-body">
+        <p style="font-size:12px;color:var(--ink-3);margin:0;">Marks you unavailable — the office will see it and won't book you those dates.</p>
+        <div class="field-row">
+          <div class="field"><label>From</label><input type="date" data-field="date" value="${f.date||''}"/></div>
+          <div class="field"><label>To (optional)</label><input type="date" data-field="endDate" value="${f.endDate||''}"/></div>
+        </div>
+        <div class="field"><label>Note (optional)</label><input data-field="note" value="${esc(f.note||'')}" placeholder="e.g. Family vacation"/></div>
+        <button class="btn btn-primary btn-block" data-action="submit-block-time" style="margin-top:6px;">Block Time — Add to Calendar</button>
       </div>
     </div>
   </div>`;
@@ -2710,6 +2744,37 @@ function doSubmitLead(){
   if(findConflicts(ev).length) toast(`⚠ Scheduling conflict — ${artistById(f.artistId).name} already has something this date.`, 'system');
   S.showNewLead=false; S.newLeadForm={}; openEvent(ev.id);
 }
+function doSubmitBlockTime(){
+  const f = S.blockTimeForm;
+  if(!f.date){ toast('Pick a date.', 'system'); return; }
+  const artist = artistById(S.user);
+  const start = new Date(f.date+'T00:00:00');
+  const end = f.endDate ? new Date(f.endDate+'T00:00:00') : start;
+  if(end < start){ toast('End date is before the start date.', 'system'); return; }
+  const dates = [];
+  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)) dates.push(fmtISO(new Date(d)));
+  let hadConflict = false;
+  dates.forEach(date=>{
+    const ev = {
+      id:'EV-'+(EVID++), artistId:S.user, type:'Unavailable', unpaid:true,
+      clientName:null, clientEmail:'', clientPhone:'',
+      date, time:'00:00', endTime:null,
+      venue:'', city:'', state:'',
+      price:0, commission:0, balance:0, status:'scheduled', depositReceived:false, depositReceivedDate:null,
+      balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
+      flightNeeded:false, flightBooked:false, flight:null,
+      groundTransportNeeded:false, groundTransportBooked:false, groundTransport:null,
+      charges:[], prepSheets:[], createdAt: fmtISO(new Date()),
+      log:[{ts:new Date().toISOString(), type:'system', text:`${artist.name} blocked this date${f.note?': '+f.note:''}.`}],
+    };
+    if(findConflicts(ev).length) hadConflict = true;
+    S.events.unshift(ev);
+  });
+  saveEvents();
+  toast(dates.length>1? `${dates.length} days blocked on your calendar.` : 'Date blocked on your calendar.', 'success');
+  if(hadConflict) toast(`⚠ You already have something booked in that range.`, 'system');
+  S.showBlockTime=false; S.blockTimeForm={}; render();
+}
 
 /* ============ EVENT BINDING ============ */
 function bindGlobal(){
@@ -2751,7 +2816,7 @@ function bindGlobal(){
       const form = el.closest('[data-form]')?.getAttribute('data-form');
       if(form==='task'){ S.newTaskText = el.value; return; }
       if(form==='comment'){ S.newCommentText = el.value; return; }
-      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm };
+      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm };
       const target = formTargets[form] || S.newLeadForm;
       target[key] = el.type==='checkbox'? el.checked : el.value;
     });
@@ -2783,6 +2848,8 @@ function bindGlobal(){
       case 'open-event-from-day': S.dayListDate = null; openEvent(id); break;
       case 'open-artist': navigate('artist_detail', {artistDetailId:id}); break;
       case 'open-new-lead': closeAllOverlays(); S.newLeadForm={date:'',time:'19:00'}; S.showNewLead=true; render(); break;
+      case 'open-block-time': closeAllOverlays(); S.blockTimeForm={}; S.showBlockTime=true; render(); break;
+      case 'submit-block-time': doSubmitBlockTime(); break;
       case 'close-sheet': closeSheet(); break;
       case 'pick-artist': S.newLeadForm.artistId = id; applyStandardPricing(); render(); break;
       case 'pick-booking-kind': { const kind = t.getAttribute('data-kind'); S.newLeadForm.kind = kind; S.newLeadForm.type = null; render(); break; }
