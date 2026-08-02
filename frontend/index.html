@@ -295,7 +295,7 @@ tr.row-link:hover td{ background:var(--surface-2); }
 .install-banner .ib-steps{ display:inline-flex; align-items:center; gap:3px; vertical-align:-2px; }
 .install-banner .btn{ flex:none; }
 .install-banner .ib-close{ flex:none; background:transparent; border:none; color:var(--page); opacity:.65; padding:2px; }
-body:has(.bottom-nav) .install-banner{ bottom:92px; }
+body:has(.bottom-nav) .install-banner{ bottom:80px; }
 
 /* ============ MISC ============ */
 .empty{ text-align:center; padding:40px 20px; color:var(--ink-3); font-size:13px; }
@@ -354,7 +354,7 @@ body:has(.bottom-nav) .install-banner{ bottom:92px; }
 }
 @media (max-width: 860px){
   .rail{ display:none; }
-  .content{ padding:14px 12px 116px; }
+  .content{ padding:14px 12px 104px; }
   .topbar{ padding:10px 12px; gap:8px; }
   .topbar h1{ font-size:1.2rem; }
   .hamburger-btn{ display:inline-flex; }
@@ -394,11 +394,11 @@ body:has(.bottom-nav) .install-banner{ bottom:92px; }
   .stat-tile .val{ font-size:1.5rem; }
   .section-head{ margin-bottom:8px; }
   .section-head h2{ font-size:1.05rem; }
-  .bottom-nav{ display:flex; position:fixed; left:max(12px, env(safe-area-inset-left)); right:max(12px, env(safe-area-inset-right)); bottom:max(12px, env(safe-area-inset-bottom)); border-radius:32px; background:color-mix(in srgb, var(--page) 78%, transparent); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid var(--border); box-shadow:0 10px 30px -10px rgba(20,20,26,.28), 0 2px 10px rgba(20,20,26,.08); padding:6px 8px; justify-content:space-around; z-index:30; box-sizing:border-box; }
-  .bn-item{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:5px; font-size:11.5px; font-weight:600; color:var(--ink-3); padding:10px 4px; min-height:64px; border-radius:22px; flex:1; min-width:0; }
-  .bn-item .ico{ width:22px; height:22px; }
+  .bottom-nav{ display:flex; position:fixed; left:max(12px, env(safe-area-inset-left)); right:max(12px, env(safe-area-inset-right)); bottom:max(12px, env(safe-area-inset-bottom)); border-radius:28px; background:color-mix(in srgb, var(--page) 78%, transparent); backdrop-filter:blur(20px) saturate(180%); -webkit-backdrop-filter:blur(20px) saturate(180%); border:1px solid var(--border); box-shadow:0 10px 30px -10px rgba(20,20,26,.28), 0 2px 10px rgba(20,20,26,.08); padding:5px 6px; justify-content:space-around; z-index:30; box-sizing:border-box; }
+  .bn-item{ display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; font-size:10.5px; font-weight:600; color:var(--ink-3); padding:6px 4px; min-height:54px; border-radius:999px; flex:1; min-width:0; position:relative; }
+  .bn-item .ico{ width:19px; height:19px; }
   .bn-item span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-  .bn-item.active{ color:var(--ink); font-weight:700; }
+  .bn-item.active{ color:var(--ink); font-weight:700; background:var(--surface); box-shadow:var(--shadow-sm); }
   .bn-item[data-view="projects"], .bn-item[data-view="a_projects"], .bn-item[data-view="pricing"]{ display:none; }
 }
 @media (max-width: 480px){
@@ -410,8 +410,8 @@ body:has(.bottom-nav) .install-banner{ bottom:92px; }
   .cal-evt span{ max-width:34px; }
   .stat-tile .val{ font-size:1.3rem; }
   .bn-item span{ display:none; }
-  .bn-item .ico{ width:24px; height:24px; }
-  .bn-item{ padding:10px 2px; min-height:56px; }
+  .bn-item .ico{ width:21px; height:21px; }
+  .bn-item{ padding:8px 2px; min-height:48px; }
 }
 
 /* ============ OPENER ============ */
