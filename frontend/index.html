@@ -122,8 +122,8 @@ input,select,textarea{font-family:inherit; font-size:inherit;}
 
 /* ============ APP SHELL ============ */
 #app{ min-height:100vh; }
-.shell{ display:flex; min-height:100vh; }
-.rail{ width:228px; flex:none; background:var(--surface-2); border-right:1px solid var(--border); display:flex; flex-direction:column; padding:20px 12px; gap:24px; position:sticky; top:0; height:100vh; }
+.shell{ display:flex; min-height:100vh; background:var(--page); }
+.rail{ width:228px; flex:none; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-lg); box-shadow:var(--shadow-md); display:flex; flex-direction:column; padding:20px 12px; gap:24px; position:sticky; top:16px; height:calc(100vh - 32px); margin:16px 0 16px 16px; }
 .rail-nav{ display:flex; flex-direction:column; gap:2px; }
 .rail-link{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:var(--r-md); color:var(--ink-2); font-size:13.5px; font-weight:600; transition:.16s cubic-bezier(.2,.7,.3,1); }
 .rail-link .ico{ width:17px; height:17px; flex:none; transition:transform .16s ease; }
