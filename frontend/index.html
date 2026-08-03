@@ -797,7 +797,7 @@ let S = {
   showBlockTime:false,
   blockTimeForm:{},
   showAskAI:false,
-  askAIQuery:'',
+  askAIForm:{},
   askAIHistory:[],
   showContract:false,
   showAddCharge:false,
@@ -1073,6 +1073,7 @@ function render(){
     ${S.showMobileMenu ? renderMobileMenu(isAdmin) : ''}
     ${S.showNewLead ? renderNewLeadModal() : ''}
     ${S.showBlockTime ? renderBlockTimeModal() : ''}
+    ${S.showAskAI ? renderAskAIModal() : ''}
     ${S.showAddArtist ? renderAddArtistModal() : ''}
     ${S.newArtistWelcome ? renderWelcomeEmailPreview() : ''}
     ${S.dayListDate ? renderDayList() : ''}
@@ -2098,6 +2099,41 @@ function renderBlockTimeModal(){
   </div>`;
 }
 
+function renderAskAIModal(){
+  const history = S.askAIHistory;
+  const f = S.askAIForm;
+  const suggestions = isAdminUser(S.user) ? [
+    'How many open leads do we have?',
+    'What gigs are booked this month?',
+    'Any scheduling conflicts?',
+    'How is Benny Friedman doing?',
+  ] : [
+    'When is my next gig?',
+    'How many gigs do I have this month?',
+    'What is my YTD payout?',
+  ];
+  return `<div class="overlay center" data-action="overlay-close">
+    <div class="modal" data-stop data-form="askai" style="width:460px;display:flex;flex-direction:column;max-height:80vh;">
+      <div class="sheet-head"><h2 style="font-size:1.2rem;display:flex;align-items:center;gap:8px;">${ICO.sparkle} Ask AI</h2><button class="icon-btn" data-action="close-sheet">${ICO.x}</button></div>
+      <div style="flex:1;overflow-y:auto;padding:16px 20px;display:flex;flex-direction:column;gap:12px;">
+        ${!history.length ? `
+          <p style="font-size:12.5px;color:var(--ink-3);margin:0;">Ask about gigs, leads, or an artist's schedule.</p>
+          <div style="display:flex;flex-direction:column;gap:6px;">
+            ${suggestions.map(s=>`<button class="btn btn-sm btn-ghost" style="justify-content:flex-start;" data-action="ask-ai-suggestion" data-q="${esc(s)}">${esc(s)}</button>`).join('')}
+          </div>
+        ` : history.map(h=>`
+          <div style="align-self:flex-end;max-width:85%;background:var(--accent);color:#fff;padding:9px 13px;border-radius:14px 14px 4px 14px;font-size:13px;">${esc(h.q)}</div>
+          <div style="align-self:flex-start;max-width:85%;background:var(--surface-2);padding:9px 13px;border-radius:14px 14px 14px 4px;font-size:13px;line-height:1.5;white-space:pre-line;">${esc(h.a)}</div>
+        `).join('')}
+      </div>
+      <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;">
+        <input id="askAIInput" data-field="query" value="${esc(f.query||'')}" placeholder="Ask a question…" style="flex:1;padding:9px 14px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface);font-size:13px;"/>
+        <button class="icon-btn" style="background:var(--accent);color:#fff;border-radius:50%;" data-action="submit-ask-ai" title="Send">${ICO.chev('r')}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderAddArtistModal(){
   const f = S.addArtistForm;
   return `<div class="overlay center" data-action="overlay-close-addartist">
@@ -2935,6 +2971,46 @@ function doSubmitBlockTime(){
   S.showBlockTime=false; S.blockTimeForm={}; render();
 }
 
+function answerAskAI(q, isAdmin){
+  const ql = q.toLowerCase();
+  const upcoming = (evs)=>evs.filter(e=>!isPast(e.date) && ['booked','paid'].includes(e.status));
+  if(!isAdmin){
+    const evs = eventsFor(S.user);
+    const nextGig = upcoming(evs).sort((a,b)=>a.date.localeCompare(b.date))[0];
+    const ytd = evs.filter(e=>e.balanceReceived && new Date(e.balanceReceivedDate).getFullYear()===new Date().getFullYear()).reduce((s,e)=>s+e.balance,0);
+    if(ql.includes('next gig') || ql.includes('next booking')) return nextGig ? `Your next gig is ${nextGig.type} for ${nextGig.clientName||'you'} on ${fmtDateShort(nextGig.date)}.` : `You don't have any upcoming gigs booked yet.`;
+    if(ql.includes('this month')){ const n=new Date(); const thisMonth = upcoming(evs).filter(e=>{const d=new Date(e.date+'T00:00:00'); return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();}); return `You have ${thisMonth.length} gig${thisMonth.length===1?'':'s'} this month.`; }
+    if(ql.includes('ytd') || ql.includes('payout') || ql.includes('earn')) return `You've been paid ${money(ytd)} so far this year.`;
+    if(ql.includes('flight') || ql.includes('travel') || ql.includes('driver')){ const needs = evs.filter(e=>!isPast(e.date) && ((e.flightNeeded&&!e.flightBooked)||(e.groundTransportNeeded&&!e.groundTransportBooked))); return needs.length? `You have ${needs.length} upcoming gig${needs.length===1?'':'s'} still needing travel arranged.` : `All your upcoming travel is arranged.`; }
+    return `I can help with your gigs, next booking, this month's schedule, or your YTD payout — try asking one of those.`;
+  }
+  const open = S.events.filter(e=>['lead','negotiating','contract_sent'].includes(e.status));
+  const awaitingBalance = S.events.filter(e=>e.status==='booked' && !e.balanceReceived);
+  const conflictPairs = allConflictPairs().filter(([a,b])=>!isPast(a.date)||!isPast(b.date));
+  const needsTravel = S.events.filter(e=>!isPast(e.date) && ((e.flightNeeded&&!e.flightBooked)||(e.groundTransportNeeded&&!e.groundTransportBooked)));
+  const matchedArtist = ARTISTS.find(a=>ql.includes(a.name.toLowerCase()) || ql.includes(a.name.split(' ')[0].toLowerCase()));
+  if(matchedArtist){
+    const evs = eventsFor(matchedArtist.id);
+    const up = upcoming(evs).sort((a,b)=>a.date.localeCompare(b.date));
+    const ytd = evs.filter(e=>e.balanceReceived && new Date(e.balanceReceivedDate).getFullYear()===new Date().getFullYear()).reduce((s,e)=>s+e.balance,0);
+    return `${matchedArtist.name}: ${up.length} upcoming gig${up.length===1?'':'s'}${up[0]?`, next on ${fmtDateShort(up[0].date)}`:''}. YTD payout: ${money(ytd)}.`;
+  }
+  if(ql.includes('conflict')) return conflictPairs.length ? `There ${conflictPairs.length===1?'is':'are'} ${conflictPairs.length} scheduling conflict${conflictPairs.length===1?'':'s'} right now — check the Dashboard for details.` : `No scheduling conflicts right now.`;
+  if(ql.includes('lead')) return `There ${open.length===1?'is':'are'} ${open.length} open lead${open.length===1?'':'s'} awaiting contract or deposit.`;
+  if(ql.includes('balance')) return `${awaitingBalance.length} booked gig${awaitingBalance.length===1?'':'s'} still awaiting balance payment.`;
+  if(ql.includes('flight') || ql.includes('travel') || ql.includes('driver')) return needsTravel.length ? `${needsTravel.length} upcoming gig${needsTravel.length===1?'':'s'} still need a flight or driver arranged — see the Travel page.` : `All upcoming travel is arranged.`;
+  if(ql.includes('this month') || ql.includes('booked')){ const n=new Date(); const thisMonth = S.events.filter(e=>{const d=new Date(e.date+'T00:00:00'); return ['booked','paid'].includes(e.status) && d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();}); return `${thisMonth.length} gig${thisMonth.length===1?'':'s'} booked this month.`; }
+  return `I can help with leads, balances, conflicts, travel, or ask about a specific artist (e.g. "How is Benny doing?").`;
+}
+function doAskAI(){
+  const q = (S.askAIForm.query||'').trim();
+  if(!q) return;
+  const a = answerAskAI(q, isAdminUser(S.user));
+  S.askAIHistory.push({q, a});
+  S.askAIForm = {};
+  render();
+}
+
 /* ============ EVENT BINDING ============ */
 function bindGlobal(){
   const staleFlight = document.getElementById('flightOverlayHost');
@@ -2975,11 +3051,17 @@ function bindGlobal(){
       const form = el.closest('[data-form]')?.getAttribute('data-form');
       if(form==='task'){ S.newTaskText = el.value; return; }
       if(form==='comment'){ S.newCommentText = el.value; return; }
-      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm, publicupload:S.publicUploadForm };
+      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm, publicupload:S.publicUploadForm, askai:S.askAIForm };
       const target = formTargets[form] || S.newLeadForm;
       target[key] = el.type==='checkbox'? el.checked : el.value;
     });
   });
+  const askAIInput = document.getElementById('askAIInput');
+  if(askAIInput){
+    askAIInput.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); doAskAI(); } });
+    askAIInput.focus();
+    const v = askAIInput.value; askAIInput.value=''; askAIInput.value=v;
+  }
   document.body.onclick = (e)=>{
     const t = e.target.closest('[data-action]');
     if(S.showEventMenu && !e.target.closest('.kebab-menu-wrap')){
@@ -3010,6 +3092,9 @@ function bindGlobal(){
       case 'open-new-lead': closeAllOverlays(); S.newLeadForm={date:'',time:'19:00'}; S.showNewLead=true; render(); break;
       case 'open-block-time': closeAllOverlays(); S.blockTimeForm={}; S.showBlockTime=true; render(); break;
       case 'submit-block-time': doSubmitBlockTime(); break;
+      case 'open-ask-ai': closeAllOverlays(); S.showAskAI=true; render(); break;
+      case 'submit-ask-ai': doAskAI(); break;
+      case 'ask-ai-suggestion': S.askAIForm={query:t.getAttribute('data-q')}; doAskAI(); break;
       case 'close-sheet': closeSheet(); break;
       case 'pick-artist': S.newLeadForm.artistId = id; applyStandardPricing(); render(); break;
       case 'pick-booking-kind': { const kind = t.getAttribute('data-kind'); S.newLeadForm.kind = kind; S.newLeadForm.type = null; render(); break; }
