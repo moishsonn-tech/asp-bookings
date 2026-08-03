@@ -411,13 +411,15 @@ body:has(.bottom-nav) .install-banner{ bottom:80px; }
 @media (max-width: 480px){
   .grid-3{ grid-template-columns:1fr 1fr; }
   .newlead-btn{ padding:9px 12px; flex:none; }
+  .askai-btn{ padding:9px 10px; flex:none; }
+  .askai-btn .btn-label{ display:none; }
   .chip-name{ display:none; }
   .user-chip{ padding:4px; }
   .cal-cell{ aspect-ratio:1; padding:3px 2px; }
   .cal-evt span{ max-width:34px; }
   .stat-tile .val{ font-size:1.3rem; }
-  .bn-item span{ display:none; }
-  .bn-item .ico{ width:21px; height:21px; }
+  .bn-item span{ font-size:9px; }
+  .bn-item .ico{ width:20px; height:20px; }
   .bn-item{ padding:8px 2px; min-height:48px; }
 }
 
@@ -463,7 +465,7 @@ const ICO = {
   leads:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19V6a2 2 0 0 1 2-2h9l5 5v10a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2Z"/><path d="M14 4v5h5"/></svg>',
   artists:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="9" cy="8" r="3.2"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="18" cy="8" r="2.6"/><path d="M16 13.2a5.2 5.2 0 0 1 5.5 5.2"/></svg>',
   money:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2.5" y="6" width="19" height="12" rx="2"/><circle cx="12" cy="12" r="3"/><path d="M6 10v0M18 14v0"/></svg>',
-  plane:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.5 21 12 16l-7 2-2-2 8-4-4-7 2-1 6 6 5-3a2 2 0 1 1 2 3l-3 5 6 6-1 2-7-4-2 7Z"/></svg>',
+  plane:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>',
   check:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><path d="M20 6 9 17l-5-5"/></svg>',
   mail:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m3 6 9 7 9-7"/></svg>',
   bell:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6Z"/><path d="M10 20a2 2 0 0 0 4 0"/></svg>',
@@ -489,6 +491,7 @@ const ICO = {
   car:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h-.5a1.5 1.5 0 0 1-1.5-1.5v-2a2 2 0 0 1 .15-.76l1.7-4A2 2 0 0 1 6.7 7.5h10.6a2 2 0 0 1 1.85 1.24l1.7 4c.1.24.15.5.15.76v2a1.5 1.5 0 0 1-1.5 1.5H19"/><path d="M5 17h9"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>',
   suitcase:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 13h20"/></svg>',
   checkSquare:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/></svg>',
+  edit:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
   camera:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>',
   play:'<svg class="ico" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5Z"/></svg>',
 };
@@ -612,6 +615,7 @@ const isAdminUser = (id)=>ADMIN_USERS.some(u=>u.id===id);
 const adminById = (id)=>ADMIN_USERS.find(u=>u.id===id);
 
 const EVENT_TYPES = ['Wedding','Bar Mitzvah','Sheva Brachos','Concert','Melave Malka','Chinese Auction','Private Simcha','Other'];
+const DRESS_CODES = ['Black tie','Formal — dark suit','Business casual','All black','Uniform provided by venue'];
 const INTERNAL_EVENT_TYPES = ['Recording Day','Filming Day','Rehearsal','Studio Session','Unavailable','Other'];
 
 /* ============ PRICING ============ */
@@ -731,6 +735,7 @@ function makeEvent(artist, offsetDays, forceStatus){
       dropoffTime: fmtISO(date)+' '+startTime, dropoffLocation: v.venue, notes:'Sedan, one-way to venue.'
     } : null,
     charges,
+    dressCode: rng()<0.5 ? pick(DRESS_CODES) : '',
     prepSheets: [],
     eventMedia: [],
     createdAt: fmtISO(created),
@@ -799,6 +804,8 @@ let S = {
   itineraryEventId:null,
   showBlockTime:false,
   blockTimeForm:{},
+  showDressCodeForm:false,
+  dressCodeForm:{},
   showAskAI:false,
   askAIForm:{},
   askAIHistory:[],
@@ -911,6 +918,9 @@ function fullLocation(ev){
   const parts = [ev.venue, ev.city, ev.state].filter(Boolean);
   return parts.length? parts.join(', ') : 'Location TBD';
 }
+function hasLocation(ev){ return !!(ev.venue || ev.city || ev.state); }
+function gmapsUrl(ev){ return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(fullLocation(ev))}`; }
+function wazeUrl(ev){ return `https://waze.com/ul?q=${encodeURIComponent(fullLocation(ev))}&navigate=yes`; }
 const US_STATES = new Set(['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY','DC']);
 function isInternational(ev){ const s=(ev.state||'').trim().toUpperCase(); return s.length>0 && !US_STATES.has(s); }
 function eventTravelDates(ev){
@@ -999,7 +1009,7 @@ S.showInstallBanner = shouldShowInstallBanner();
 function closeAllOverlays(){
   S.eventId=null; S.projectId=null; S.showNewLead=false; S.showAddArtist=false; S.newArtistWelcome=null;
   S.dayListDate=null; S.showNewProject=false; S.showFlightForm=false; S.showContract=false;
-  S.showTransportForm=false; S.showItinerary=false; S.itineraryEventId=null; S.showBlockTime=false; S.showAskAI=false;
+  S.showTransportForm=false; S.showItinerary=false; S.itineraryEventId=null; S.showBlockTime=false; S.showAskAI=false; S.showDressCodeForm=false;
   S.showAddCharge=false; S.showEventMenu=false; S.showDraftUpdate=false; S.projectTab='tasks'; S.showReminderPreview=false;
   S.showMobileMenu=false;
 }
@@ -1064,7 +1074,7 @@ function render(){
             <h1 style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${pageTitle()}</h1>
           </div>
           <div style="display:flex;align-items:center;gap:10px;flex:none;">
-            <button class="icon-btn" data-action="open-ask-ai" title="Ask AI">${ICO.sparkle}</button>
+            <button class="btn askai-btn" data-action="open-ask-ai" title="Ask AI" style="background:var(--accent-wash);color:var(--accent-ink);border-color:transparent;">${ICO.sparkle}<span class="btn-label">Ask AI</span></button>
             ${isAdmin ? `<button class="btn btn-primary newlead-btn" data-action="open-new-lead">${ICO.leads}<span class="btn-label">New Lead</span></button>` : ''}
             ${renderUserChip()}
           </div>
@@ -2086,6 +2096,7 @@ function renderNewLeadModal(){
 
 function renderBlockTimeModal(){
   const f = S.blockTimeForm;
+  const allDay = f.allDay!==false;
   return `<div class="overlay center" data-action="overlay-close">
     <div class="modal" data-stop data-form="blocktime" style="width:380px;">
       <div class="sheet-head"><h2 style="font-size:1.3rem;">Block Time</h2><button class="icon-btn" data-action="close-sheet">${ICO.x}</button></div>
@@ -2095,6 +2106,14 @@ function renderBlockTimeModal(){
           <div class="field"><label>From</label><input type="date" data-field="date" value="${f.date||''}"/></div>
           <div class="field"><label>To (optional)</label><input type="date" data-field="endDate" value="${f.endDate||''}"/></div>
         </div>
+        <div class="field" style="flex-direction:row;align-items:center;gap:8px;">
+          <input type="checkbox" id="blockAllDay" data-field="allDay" ${allDay?'checked':''} style="width:16px;height:16px;"/>
+          <label for="blockAllDay" style="text-transform:none;font-size:13px;color:var(--ink);font-weight:500;">All day</label>
+        </div>
+        ${!allDay? `<div class="field-row">
+          <div class="field"><label>Start Time</label><input type="time" data-field="startTime" value="${f.startTime||''}"/></div>
+          <div class="field"><label>End Time</label><input type="time" data-field="endTime" value="${f.endTime||''}"/></div>
+        </div>` : ''}
         <div class="field"><label>Note (optional)</label><input data-field="note" value="${esc(f.note||'')}" placeholder="e.g. Family vacation"/></div>
         <button class="btn btn-primary btn-block" data-action="submit-block-time" style="margin-top:6px;">Block Time — Add to Calendar</button>
       </div>
@@ -2167,6 +2186,7 @@ function renderReminderPreview(){
           <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;"/>
           <p style="margin:0 0 8px;">Hi ${esc(ev.clientName.split(' ')[0])},</p>
           <p style="margin:0 0 8px;">Just a reminder — the remaining balance of ${money(balance)} for ${esc(artist.name)}'s ${esc(ev.type)} on ${esc(fmtDate(ev.date))} is due via Zelle. Scan the code below or send to ${esc(artist.email)}.</p>
+          ${hasLocation(ev)? `<p style="margin:0 0 8px;">Venue: ${esc(fullLocation(ev))} — <a href="${gmapsUrl(ev)}" target="_blank" rel="noopener" style="color:var(--accent);">Open in Maps</a></p>` : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px;background:var(--surface-2);border-radius:var(--r-md);">
           <img src="${qrUrl}" alt="Zelle QR code" width="180" height="180" style="border-radius:8px;background:#fff;padding:8px;"/>
@@ -2244,11 +2264,25 @@ function renderEventSheet(ev){
           ${!ev.unpaid ? `<div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.pin} Client</span><strong>${esc(ev.clientName)}</strong></div>` : ''}
           <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">Type</span><strong>${esc(ev.type)}</strong></div>
           <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.clock} Date &amp; Time</span><strong class="u-mono">${fmtDate(ev.date)} · ${fmtTimeRange(ev.time, ev.endTime)}</strong></div>
-          <div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.pin} Venue</span><strong style="text-align:right;">${ev.venue? esc(ev.venue) : `<span style="color:var(--ink-3);font-weight:500;">TBD</span>`}${(ev.city||ev.state)?`<br/><span style="font-weight:500;color:var(--ink-2);">${esc(ev.city)}${ev.city&&ev.state?', ':''}${esc(ev.state)}</span>`:''}</strong></div>
+          <div style="display:flex;justify-content:space-between;font-size:13.5px;">
+            <span style="color:var(--ink-2);">${ICO.pin} Venue</span>
+            <span style="text-align:right;">
+              <strong>${ev.venue? esc(ev.venue) : `<span style="color:var(--ink-3);font-weight:500;">TBD</span>`}${(ev.city||ev.state)?`<br/><span style="font-weight:500;color:var(--ink-2);">${esc(ev.city)}${ev.city&&ev.state?', ':''}${esc(ev.state)}</span>`:''}</strong>
+              ${hasLocation(ev)? `<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px;">
+                <a href="${gmapsUrl(ev)}" target="_blank" rel="noopener" style="font-size:11px;font-weight:700;color:var(--accent);text-decoration:none;">Maps</a>
+                <a href="${wazeUrl(ev)}" target="_blank" rel="noopener" style="font-size:11px;font-weight:700;color:var(--accent);text-decoration:none;">Waze</a>
+              </div>`:''}
+            </span>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:13.5px;">
+            <span style="color:var(--ink-2);">Dress Code</span>
+            <span style="display:flex;align-items:center;gap:6px;">
+              <strong style="text-align:right;">${ev.dressCode? esc(ev.dressCode) : `<span style="color:var(--ink-3);font-weight:500;">${isAdmin?'Not set':'TBD'}</span>`}</strong>
+              ${isAdmin? `<button class="icon-btn" data-action="open-dresscode-form" style="width:20px;height:20px;" title="Edit dress code">${ICO.edit}</button>`:''}
+            </span>
+          </div>
           ${isAdmin && !ev.unpaid?`<div style="display:flex;justify-content:space-between;font-size:13.5px;"><span style="color:var(--ink-2);">${ICO.mail} Contact</span><strong style="text-align:right;">${esc(ev.clientEmail)}<br/><span style="font-weight:500;color:var(--ink-2);">${esc(ev.clientPhone)}</span></strong></div>`:''}
         </div>
-
-        ${!ev.unpaid ? `<button class="btn" data-action="view-contract" data-id="${ev.id}" style="justify-content:flex-start;">${ICO.leads} ${ev.status==='lead'?'Preview Draft Contract':'View Contract'}</button>` : ''}
 
         ${renderConflictWarning(ev)}
         ${isInternational(ev) && !ev.intlOpportunityDismissed && !isPast(ev.date) ? `<div class="card card-pad" style="border-color:var(--accent);background:var(--accent-wash);">
@@ -2264,7 +2298,6 @@ function renderEventSheet(ev){
           <button class="btn" style="flex:1;justify-content:flex-start;" data-action="view-itinerary" data-id="${ev.id}">${ICO.suitcase} View Itinerary</button>
           ${isAdmin? `<button class="btn btn-sm" data-action="email-itinerary" data-id="${ev.id}">${ICO.mail} Email to Artist</button>` : ''}
         </div>` : ''}
-        ${!ev.unpaid ? renderLedger(ev, isAdmin) : ''}
         ${renderPrepSheets(ev, isAdmin)}
         ${renderEventMedia(ev, isAdmin)}
         ${!isAdmin ? `<div>
@@ -2276,6 +2309,9 @@ function renderEventSheet(ev){
           </div>`:''}
 
         ${isAdmin ? renderAdminActions(ev) : ''}
+
+        ${!ev.unpaid ? `<button class="btn btn-sm btn-ghost" data-action="view-contract" data-id="${ev.id}" style="justify-content:flex-start;color:var(--ink-2);">${ICO.leads} ${ev.status==='lead'?'Preview Draft Contract':'View Contract'}</button>` : ''}
+        ${!ev.unpaid ? renderLedger(ev, isAdmin, {compact:true}) : ''}
 
         <div>
           <div class="section-head" style="margin-bottom:8px;"><h2 style="font-size:1rem;">Activity</h2></div>
@@ -2343,17 +2379,18 @@ function renderGroundTransportBlock(ev, isAdmin){
   </div>`;
 }
 
-function renderLedger(ev, isAdmin){
+function renderLedger(ev, isAdmin, opts={}){
   const extras = ev.charges||[];
   const extrasSum = chargesTotal(ev);
   const total = ev.price + extrasSum;
   const artistTotal = ev.balance + extrasSum;
-  return `<div class="card card-pad">
+  const compact = !!opts.compact;
+  return `<div class="card card-pad" style="${compact?'padding:12px 14px;':''}">
     <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:6px;">
       <div class="u-label">Price Breakdown</div>
       ${isAdmin? `<button class="btn btn-sm btn-ghost" data-action="toggle-add-charge" data-id="${ev.id}" style="padding:2px 6px;">${S.showAddCharge?'Cancel':'+ Add Charge'}</button>`:''}
     </div>
-    <div class="ledger">
+    <div class="ledger" style="${compact?'font-size:11.5px;':''}">
       <div class="ledger-row"><span>Performance Fee</span><span class="amt">${money(ev.price)}</span></div>
       ${extras.map(c=>`<div class="ledger-row"><span>${esc(c.label)}${c.addedAfterSigning?` <span class="pill pill-warn" style="padding:1px 6px;font-size:9px;vertical-align:1px;">notify client</span>`:''}${isAdmin?` <a href="#" data-action="remove-charge" data-id="${ev.id}" data-chargeid="${c.id}" style="color:var(--crit);text-decoration:none;margin-left:4px;">×</a>`:''}</span><span class="amt">${money(c.amount)}</span></div>`).join('')}
       ${S.showAddCharge? renderAddChargeRow(ev) : ''}
@@ -2487,6 +2524,21 @@ function renderTransportFormOverlay(){
         <div class="field"><label>Drop-off Location</label><input data-field="dropoffLocation" value="${esc(f.dropoffLocation||'')}" placeholder="Venue"/></div>
         <div class="field"><label>Notes</label><input data-field="notes" value="${esc(f.notes||'')}" placeholder="Sedan, one-way"/></div>
         <button class="btn btn-primary btn-block" data-action="save-transport" data-id="${ev.id}">Save &amp; Notify Artist</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderDressCodeFormOverlay(){
+  const ev = getEvent(S.eventId); if(!ev) return '';
+  const f = S.dressCodeForm;
+  return `<div class="overlay center" data-action="dresscode-overlay-close">
+    <div class="modal" data-stop data-form="dresscode" style="width:380px;">
+      <div class="sheet-head"><h2 style="font-size:1.2rem;">Dress Code</h2><button class="icon-btn" data-action="close-dresscode-form">${ICO.x}</button></div>
+      <div class="sheet-body">
+        <div class="field"><label>Dress Code</label><input data-field="dressCode" value="${esc(f.dressCode||'')}" placeholder="e.g. Black tie, all black"/></div>
+        <div class="chip-row">${DRESS_CODES.map(d=>`<button class="filter-chip" data-action="pick-dresscode" data-value="${esc(d)}">${esc(d)}</button>`).join('')}</div>
+        <button class="btn btn-primary btn-block" data-action="save-dresscode" data-id="${ev.id}" style="margin-top:6px;">Save &amp; Notify Artist</button>
       </div>
     </div>
   </div>`;
@@ -2668,6 +2720,13 @@ function doSaveGroundTransport(id){
   ev.groundTransportBooked = true;
   logEvent(ev,'success',`Driver booked & added to itinerary — ${artistById(ev.artistId).name} notified.`);
   toast('Driver saved — artist notified.', 'success'); S.showTransportForm=false; saveEvents(); openEvent(id);
+}
+function doSaveDressCode(id){
+  const ev = getEvent(id); const f = S.dressCodeForm;
+  ev.dressCode = (f.dressCode||'').trim();
+  logEvent(ev, 'system', ev.dressCode? `Dress code set: ${ev.dressCode} — ${artistById(ev.artistId).name} notified.` : 'Dress code cleared.');
+  toast(ev.dressCode? 'Dress code saved — artist notified.' : 'Dress code cleared.', 'success');
+  S.showDressCodeForm=false; saveEvents(); openEvent(id);
 }
 function doEmailItinerary(id){
   const ev = getEvent(id);
@@ -2934,7 +2993,7 @@ function doSubmitLead(){
     balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
     flightNeeded: !!f.flightNeeded, flightBooked:false, flight:null,
     groundTransportNeeded: !!f.groundTransportNeeded, groundTransportBooked:false, groundTransport:null,
-    charges: isInternal? [] : (f.charges||[]), prepSheets:[], eventMedia:[], createdAt: fmtISO(new Date()),
+    charges: isInternal? [] : (f.charges||[]), dressCode: isInternal? '' : (f.dressCode||''), prepSheets:[], eventMedia:[], createdAt: fmtISO(new Date()),
     log:[{ts:new Date().toISOString(), type:'system', text: isInternal? `${resolvedType} scheduled for ${artistById(f.artistId).name}.` : `Lead created for ${artistById(f.artistId).name} — client info entered by management.`}],
   };
   S.events.unshift(ev); saveEvents();
@@ -2945,6 +3004,8 @@ function doSubmitLead(){
 function doSubmitBlockTime(){
   const f = S.blockTimeForm;
   if(!f.date){ toast('Pick a date.', 'system'); return; }
+  const allDay = f.allDay!==false;
+  if(!allDay && (!f.startTime || !f.endTime)){ toast('Enter a start and end time, or check All day.', 'system'); return; }
   const artist = artistById(S.user);
   const start = new Date(f.date+'T00:00:00');
   const end = f.endDate ? new Date(f.endDate+'T00:00:00') : start;
@@ -2956,14 +3017,14 @@ function doSubmitBlockTime(){
     const ev = {
       id:'EV-'+(EVID++), artistId:S.user, type:'Unavailable', unpaid:true,
       clientName:null, clientEmail:'', clientPhone:'',
-      date, time:'00:00', endTime:null,
+      date, time: allDay?'00:00':f.startTime, endTime: allDay?null:f.endTime,
       venue:'', city:'', state:'',
       price:0, commission:0, balance:0, status:'scheduled', depositReceived:false, depositReceivedDate:null,
       balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
       flightNeeded:false, flightBooked:false, flight:null,
       groundTransportNeeded:false, groundTransportBooked:false, groundTransport:null,
-      charges:[], prepSheets:[], eventMedia:[], createdAt: fmtISO(new Date()),
-      log:[{ts:new Date().toISOString(), type:'system', text:`${artist.name} blocked this date${f.note?': '+f.note:''}.`}],
+      charges:[], dressCode:'', prepSheets:[], eventMedia:[], createdAt: fmtISO(new Date()),
+      log:[{ts:new Date().toISOString(), type:'system', text:`${artist.name} blocked ${allDay?'this date':`${fmtTime(f.startTime)}–${fmtTime(f.endTime)}`}${f.note?': '+f.note:''}.`}],
     };
     if(findConflicts(ev).length) hadConflict = true;
     S.events.unshift(ev);
@@ -3032,6 +3093,14 @@ function bindGlobal(){
     holder.innerHTML = renderTransportFormOverlay();
     document.body.appendChild(holder);
   }
+  const staleDressCode = document.getElementById('dressCodeOverlayHost');
+  if(staleDressCode) staleDressCode.remove();
+  if(S.showDressCodeForm){
+    const holder = document.createElement('div');
+    holder.id = 'dressCodeOverlayHost';
+    holder.innerHTML = renderDressCodeFormOverlay();
+    document.body.appendChild(holder);
+  }
   const staleContract = document.getElementById('contractPrintHost');
   if(staleContract) staleContract.remove();
   if(S.showContract){
@@ -3054,9 +3123,10 @@ function bindGlobal(){
       const form = el.closest('[data-form]')?.getAttribute('data-form');
       if(form==='task'){ S.newTaskText = el.value; return; }
       if(form==='comment'){ S.newCommentText = el.value; return; }
-      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm, publicupload:S.publicUploadForm, askai:S.askAIForm };
+      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm, publicupload:S.publicUploadForm, askai:S.askAIForm, dresscode:S.dressCodeForm };
       const target = formTargets[form] || S.newLeadForm;
       target[key] = el.type==='checkbox'? el.checked : el.value;
+      if(el.type==='checkbox') render();
     });
   });
   const askAIInput = document.getElementById('askAIInput');
@@ -3152,6 +3222,11 @@ function bindGlobal(){
       case 'close-transport-form': S.showTransportForm=false; render(); break;
       case 'transport-overlay-close': if(e.target===t) { S.showTransportForm=false; render(); } break;
       case 'save-transport': doSaveGroundTransport(id); break;
+      case 'open-dresscode-form': { const ev=getEvent(S.eventId); S.dressCodeForm={dressCode:ev?.dressCode||''}; S.showDressCodeForm=true; render(); break; }
+      case 'close-dresscode-form': S.showDressCodeForm=false; render(); break;
+      case 'dresscode-overlay-close': if(e.target===t) { S.showDressCodeForm=false; render(); } break;
+      case 'pick-dresscode': S.dressCodeForm.dressCode = t.getAttribute('data-value'); render(); break;
+      case 'save-dresscode': doSaveDressCode(id); break;
       case 'toggle-add-charge': S.showAddCharge=!S.showAddCharge; S.addChargeForm={}; render(); break;
       case 'confirm-add-charge': doAddCharge(id); break;
       case 'remove-charge': doRemoveCharge(id, t.getAttribute('data-chargeid')); break;
