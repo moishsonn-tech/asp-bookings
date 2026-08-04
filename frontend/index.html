@@ -3098,7 +3098,12 @@ function bindGlobal(){
         S.calMonth = (()=>{const d=new Date(); d.setDate(1); return d;})();
         S.calDate = (()=>{const d=new Date(); d.setHours(0,0,0,0); return d;})();
         render(); break;
-      case 'cal-view-mode': S.calViewMode = t.getAttribute('data-mode'); render(); break;
+      case 'cal-view-mode': {
+        const mode = t.getAttribute('data-mode');
+        if(mode==='month' && S.calViewMode!=='month'){ S.calMonth = new Date(S.calDate.getFullYear(), S.calDate.getMonth(), 1); }
+        else if(mode!=='month' && S.calViewMode==='month'){ S.calDate = new Date(S.calMonth.getFullYear(), S.calMonth.getMonth(), 1); }
+        S.calViewMode = mode; render(); break;
+      }
       case 'open-day-view': S.calViewMode='day'; S.calDate=new Date(t.getAttribute('data-date')+'T00:00:00'); render(); break;
       case 'cal-filter': {
         const i = S.calArtistFilter.indexOf(id);
