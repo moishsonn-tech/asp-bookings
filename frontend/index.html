@@ -350,10 +350,10 @@ body:has(.bottom-nav) .install-banner{ bottom:80px; }
 .doc-signature{ display:inline-block; font-family:"Snell Roundhand","Segoe Script","Brush Script MT",cursive; font-size:1.9rem; font-weight:400; color:var(--ink); line-height:1.1; transform:rotate(-2deg); margin-bottom:2px; }
 .doc-foot{ margin-top:28px; padding-top:14px; border-top:1px solid var(--border); font-size:10.5px; color:var(--ink-3); text-align:center; }
 @media print{
-  body > *:not(#contractPrintHost):not(#itineraryPrintHost){ display:none !important; }
-  #contractPrintHost, #contractPrintHost .overlay, #itineraryPrintHost, #itineraryPrintHost .overlay{ position:static !important; background:transparent !important; inset:auto !important; display:block !important; padding:0 !important; }
-  #contractPrintHost .doc, #itineraryPrintHost .doc{ box-shadow:none; max-height:none; width:100%; animation:none; }
-  #contractPrintHost .sheet-head, #itineraryPrintHost .sheet-head{ display:none; }
+  body > *:not(#contractPrintHost):not(#itineraryPrintHost):not(#invoicePrintHost){ display:none !important; }
+  #contractPrintHost, #contractPrintHost .overlay, #itineraryPrintHost, #itineraryPrintHost .overlay, #invoicePrintHost, #invoicePrintHost .overlay{ position:static !important; background:transparent !important; inset:auto !important; display:block !important; padding:0 !important; }
+  #contractPrintHost .doc, #itineraryPrintHost .doc, #invoicePrintHost .doc{ box-shadow:none; max-height:none; width:100%; animation:none; }
+  #contractPrintHost .sheet-head, #itineraryPrintHost .sheet-head, #invoicePrintHost .sheet-head{ display:none; }
 }
 @media (max-width: 860px){
   .rail{ display:none; }
@@ -604,6 +604,36 @@ else {
 function getProject(id){ return PROJECTS.find(p=>p.id===id); }
 function projectProgress(p){ const done=p.tasks.filter(t=>t.done).length; return {done, total:p.tasks.length}; }
 
+/* ============ CUSTOM INVOICES ============ */
+let INVID = 1;
+function invoiceTotal(inv){ return (inv.items||[]).reduce((s,it)=>s+(Number(it.amount)||0),0); }
+function makeInvoice(clientName, clientEmail, items, notes, status, daysAgo){
+  const created = addDays(new Date(), -daysAgo);
+  const log = [{ts:created.toISOString(), type:'email', text:`Invoice sent to ${clientName}.`}];
+  const paid = status==='paid';
+  if(paid) log.push({ts:addDays(created, Math.max(1,Math.round(daysAgo/2))).toISOString(), type:'success', text:'Marked paid.'});
+  return {
+    id:'INV-'+(INVID++), clientName, clientEmail, items, notes: notes||'',
+    status, createdAt: fmtISO(created), sentAt: fmtISO(created),
+    paidAt: paid? fmtISO(addDays(created, Math.max(1,Math.round(daysAgo/2)))) : null,
+    log,
+  };
+}
+function seedCustomInvoices(){
+  return [
+    makeInvoice('Continental Ballroom', 'ap@continentalballroom.com', [{id:'LI-1',label:'Sound & production rider reimbursement',amount:850}], 'Reimbursement for Aug 8 event', 'open', 4),
+    makeInvoice('Merkaz Hall Events', 'billing@merkazhall.com', [{id:'LI-2',label:'Merch table fee',amount:200},{id:'LI-3',label:'Extra chairs & staging',amount:300}], '', 'open', 11),
+    makeInvoice('Sarah Klein', 'sarah.klein@example.com', [{id:'LI-4',label:'Private vocal coaching session',amount:400}], '', 'paid', 22),
+  ];
+}
+const INVOICES_LS_KEY = 'asp_mock_invoices_v1';
+function loadCustomInvoices(){ try{ const raw = localStorage.getItem(INVOICES_LS_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
+function saveCustomInvoices(){ try{ localStorage.setItem(INVOICES_LS_KEY, JSON.stringify(CUSTOM_INVOICES)); }catch(e){} }
+let CUSTOM_INVOICES = loadCustomInvoices();
+if(!CUSTOM_INVOICES){ CUSTOM_INVOICES = seedCustomInvoices(); saveCustomInvoices(); }
+else { INVID = CUSTOM_INVOICES.reduce((max,i)=>{ const n=parseInt(String(i.id).split('-')[1],10); return isNaN(n)?max:Math.max(max,n+1); }, INVID); }
+function getInvoice(id){ return CUSTOM_INVOICES.find(i=>i.id===id); }
+
 const ADMIN_USERS = [
   {id:'admin_bookings', name:'ASP Office — Bookings', email:'bookings@aspmanagement.com', initials:'AB'},
   {id:'admin_bookkeeping', name:'ASP Office — Bookkeeping', email:'bookkeeping@aspmanagement.com', initials:'AK'},
@@ -803,6 +833,10 @@ let S = {
   blockTimeForm:{},
   showDressCodeForm:false,
   dressCodeForm:{},
+  showNewInvoice:false,
+  newInvoiceForm:{},
+  showInvoiceDoc:false,
+  invoiceDocId:null,
   showAskAI:false,
   askAIForm:{},
   askAIHistory:[],
@@ -1005,6 +1039,7 @@ function closeAllOverlays(){
   S.eventId=null; S.projectId=null; S.showNewLead=false; S.showAddArtist=false; S.newArtistWelcome=null;
   S.dayListDate=null; S.showNewProject=false; S.showFlightForm=false; S.showContract=false;
   S.showTransportForm=false; S.showItinerary=false; S.itineraryEventId=null; S.showBlockTime=false; S.showAskAI=false; S.showDressCodeForm=false;
+  S.showNewInvoice=false; S.showInvoiceDoc=false; S.invoiceDocId=null;
   S.showAddCharge=false; S.showEventMenu=false; S.showDraftUpdate=false; S.projectTab='tasks'; S.showReminderPreview=false;
   S.showMobileMenu=false;
 }
@@ -1081,6 +1116,7 @@ function render(){
     ${S.showNewLead ? renderNewLeadModal() : ''}
     ${S.showBlockTime ? renderBlockTimeModal() : ''}
     ${S.showAskAI ? renderAskAIModal() : ''}
+    ${S.showNewInvoice ? renderNewInvoiceModal() : ''}
     ${S.showAddArtist ? renderAddArtistModal() : ''}
     ${S.newArtistWelcome ? renderWelcomeEmailPreview() : ''}
     ${S.dayListDate ? renderDayList() : ''}
@@ -1633,6 +1669,8 @@ function renderFinancialsPage(){
   const commission = booked.reduce((s,e)=>s+e.commission,0);
   const payouts = booked.reduce((s,e)=>s+e.balance,0);
   const avg = booked.length ? Math.round(gross/booked.length) : 0;
+  const openInvoices = CUSTOM_INVOICES.filter(i=>i.status==='open');
+  const openInvoiceTotal = openInvoices.reduce((s,i)=>s+invoiceTotal(i),0);
 
   const months=[]; for(let i=5;i>=0;i--){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); months.push(d); }
   const monthlyGross = months.map(md=>{
@@ -1651,6 +1689,11 @@ function renderFinancialsPage(){
     <div class="card stat-tile"><span class="u-label">ASP Commission</span><span class="val">${money(commission)}</span><span class="sub">15% of gross</span></div>
     <div class="card stat-tile"><span class="u-label">Artist Payouts</span><span class="val">${money(payouts)}</span><span class="sub">85% via Zelle</span></div>
     <div class="card stat-tile"><span class="u-label">Avg Job Size</span><span class="val">${money(avg)}</span><span class="sub">per booking</span></div>
+  </div>
+
+  <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+    <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="financials"><span class="u-label">Open Invoices</span><span class="val">${openInvoices.length}</span><span class="sub">Non-gig billing awaiting payment</span></div>
+    <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="financials"><span class="u-label">Open Invoice Total</span><span class="val">${money(openInvoiceTotal)}</span><span class="sub">Across ${openInvoices.length} open invoice${openInvoices.length===1?'':'s'}</span></div>
   </div>
 
   <div class="card card-pad" style="margin-bottom:20px;">
@@ -1682,6 +1725,20 @@ function renderFinancialsPage(){
       </div>`;
     }).join('')}
   </div>
+
+  <div class="section-head"><h2>Custom Invoices (${CUSTOM_INVOICES.length})</h2><button class="btn btn-sm btn-primary" data-action="open-new-invoice">+ New Invoice</button></div>
+  <div class="card u-scroll-x table-cards" style="margin-bottom:22px;"><table>
+    <thead><tr><th>Client</th><th>Items</th><th>Total</th><th>Date</th><th>Status</th><th></th></tr></thead>
+    <tbody>${CUSTOM_INVOICES.length? CUSTOM_INVOICES.slice().sort((a,b)=>b.createdAt.localeCompare(a.createdAt)).map(inv=>{
+      const t = invoiceTotal(inv);
+      const itemsSummary = inv.items.length===1? inv.items[0].label : `${inv.items[0].label} +${inv.items.length-1} more`;
+      return `<tr class="row-link" data-action="view-invoice" data-id="${inv.id}">
+        <td data-label="Client">${esc(inv.clientName)}</td><td data-label="Items">${esc(itemsSummary)}</td>
+        <td data-label="Total" class="u-mono">${money(t)}</td><td data-label="Date" class="u-mono">${fmtDateShort(inv.createdAt)}</td>
+        <td data-label="Status"><span class="pill ${inv.status==='paid'?'pill-good':'pill-warn'}">${inv.status==='paid'?'Paid':'Open'}</span></td>
+        <td data-label="">${inv.status==='open'? `<button class="btn btn-sm" data-action="mark-invoice-paid" data-id="${inv.id}">Mark Paid</button>` : ''}</td></tr>`;
+    }).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--ink-3);padding:20px;">No custom invoices yet.</td></tr>`}
+    </tbody></table></div>
 
   <div class="section-head"><h2>All Jobs (${booked.length})</h2><button class="btn btn-sm" data-action="export-csv">${ICO.leads} Export CSV</button></div>
   <div class="card u-scroll-x table-cards"><table>
@@ -2477,6 +2534,79 @@ function renderDressCodeFormOverlay(){
   </div>`;
 }
 
+function renderNewInvoiceModal(){
+  const f = S.newInvoiceForm;
+  const items = f.items || [];
+  const total = items.reduce((s,it)=>s+(Number(it.amount)||0),0);
+  return `<div class="overlay center" data-action="overlay-close">
+    <div class="modal" data-stop data-form="newinvoice" style="width:440px;">
+      <div class="sheet-head"><h2 style="font-size:1.3rem;">New Invoice</h2><button class="icon-btn" data-action="close-sheet">${ICO.x}</button></div>
+      <div class="sheet-body">
+        <p style="font-size:12px;color:var(--ink-3);margin:0;">For anything outside a gig booking — reimbursements, merch, extra fees. Branded as ASP, not tied to a specific event.</p>
+        <div class="field-row">
+          <div class="field"><label>Bill To</label><input data-field="clientName" value="${esc(f.clientName||'')}" placeholder="Client or company name"/></div>
+          <div class="field"><label>Email</label><input data-field="clientEmail" value="${esc(f.clientEmail||'')}" placeholder="name@example.com"/></div>
+        </div>
+        <div class="field">
+          <label>Line Items</label>
+          ${items.length? `<div class="ledger" style="margin-bottom:8px;">${items.map((it,i)=>`<div class="ledger-row"><span>${esc(it.label)} <a href="#" data-action="remove-invoice-item" data-idx="${i}" style="color:var(--crit);text-decoration:none;margin-left:4px;">×</a></span><span class="amt">${money(it.amount)}</span></div>`).join('')}</div>` : ''}
+          <div style="display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap;">
+            <div class="field" style="flex:1;min-width:140px;"><label style="font-size:10px;">Description</label><input data-field="itemLabel" value="${esc(f.itemLabel||'')}" placeholder="e.g. Equipment rental"/></div>
+            <div class="field" style="width:100px;"><label style="font-size:10px;">Amount</label><input type="number" data-field="itemAmount" value="${f.itemAmount||''}" placeholder="250"/></div>
+            <button class="btn btn-sm" data-action="add-invoice-item">+ Add</button>
+          </div>
+        </div>
+        <div class="field"><label>Notes (optional)</label><input data-field="notes" value="${esc(f.notes||'')}" placeholder="Reference / memo"/></div>
+        <div class="ledger" style="margin:4px 0 0;"><div class="ledger-row total"><span>Total</span><span class="amt">${money(total)}</span></div></div>
+        <button class="btn btn-primary btn-block" data-action="submit-invoice" style="margin-top:6px;">Send Invoice</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderInvoiceDoc(){
+  const inv = getInvoice(S.invoiceDocId); if(!inv) return '';
+  const total = invoiceTotal(inv);
+  return `<div class="overlay center" data-action="invoice-overlay-close">
+    <div class="doc" data-stop>
+      <div class="sheet-head">
+        <h2 style="font-size:1.1rem;">Invoice ${esc(inv.id)}</h2>
+        <div style="display:flex;gap:6px;">
+          <button class="icon-btn" data-action="print-invoice" title="Print / Save as PDF"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9V3h12v6M6 18H4a1 1 0 0 1-1-1v-5a1 1 0 0 1 1-1h16a1 1 0 0 1 1 1v5a1 1 0 0 1-1 1h-2"/><rect x="6" y="14" width="12" height="7"/></svg></button>
+          <button class="icon-btn" data-action="close-invoice-doc">${ICO.x}</button>
+        </div>
+      </div>
+      <div class="doc-body">
+        <div class="doc-letterhead">
+          <div class="wordmark" style="font-size:1.1rem;"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP</div>
+          <span class="pill ${inv.status==='paid'?'pill-good':'pill-warn'}">${inv.status==='paid'?'Paid':'Open'}</span>
+        </div>
+        <div class="doc-title">INVOICE</div>
+        <div class="doc-sub">${esc(inv.id)} &middot; ${fmtDate(inv.createdAt)}</div>
+
+        <div class="doc-parties">
+          <div class="doc-party"><h4>From</h4><p><strong>ASP Artist Management</strong><br/>office@aspmanagement.com</p></div>
+          <div class="doc-party"><h4>Bill To</h4><p><strong>${esc(inv.clientName)}</strong><br/>${esc(inv.clientEmail)}</p></div>
+        </div>
+
+        <div class="doc-section"><h3>Items</h3>
+          <div class="ledger" style="margin-bottom:20px;">
+            ${inv.items.map(it=>`<div class="ledger-row"><span>${esc(it.label)}</span><span class="amt">${money(it.amount)}</span></div>`).join('')}
+            <div class="ledger-row total"><span>Total Due</span><span class="amt">${money(total)}</span></div>
+          </div>
+        </div>
+        ${inv.notes? `<div class="doc-section"><p style="font-size:12.5px;color:var(--ink-2);margin:0;">${esc(inv.notes)}</p></div>` : ''}
+
+        <div class="doc-section"><h3>Payment</h3>
+          <p style="font-size:12.5px;line-height:1.7;margin:0;">Payment via QuickBooks invoice, Zelle, or check made out to ASP Artist Management. Contact <span class="u-mono">office@aspmanagement.com</span> with questions.</p>
+        </div>
+
+        <div class="doc-foot">This is a mockup document for demonstration purposes.</div>
+      </div>
+    </div>
+  </div>`;
+}
+
 function renderContractDoc(){
   const ev = getEvent(S.eventId); if(!ev) return '';
   const artist = artistById(ev.artistId);
@@ -2667,6 +2797,27 @@ function doSaveDressCode(id){
   logEvent(ev, 'system', ev.dressCode? `Dress code set: ${ev.dressCode} — ${artistById(ev.artistId).name} notified.` : 'Dress code cleared.');
   toast(ev.dressCode? 'Dress code saved — artist notified.' : 'Dress code cleared.', 'success');
   S.showDressCodeForm=false; saveEvents(); openEvent(id);
+}
+function doSubmitInvoice(){
+  const f = S.newInvoiceForm;
+  const clientName = (f.clientName||'').trim();
+  const clientEmail = (f.clientEmail||'').trim();
+  const items = f.items || [];
+  if(!clientName){ toast('Enter who this invoice is billed to.', 'error'); return; }
+  if(!items.length){ toast('Add at least one line item.', 'error'); return; }
+  const inv = makeInvoice(clientName, clientEmail, items, (f.notes||'').trim(), 'open', 0);
+  CUSTOM_INVOICES.unshift(inv);
+  saveCustomInvoices();
+  toast(`Invoice sent to ${clientName}.`, 'success');
+  S.showNewInvoice=false; S.newInvoiceForm={}; render();
+}
+function doMarkInvoicePaid(id){
+  const inv = getInvoice(id); if(!inv) return;
+  inv.status = 'paid'; inv.paidAt = fmtISO(new Date());
+  inv.log.push({ts:new Date().toISOString(), type:'success', text:'Marked paid.'});
+  saveCustomInvoices();
+  toast('Invoice marked paid.', 'success');
+  render();
 }
 function doEmailItinerary(id){
   const ev = getEvent(id);
@@ -3015,13 +3166,21 @@ function bindGlobal(){
     holder.innerHTML = renderItineraryDoc();
     document.body.appendChild(holder);
   }
+  const staleInvoiceDoc = document.getElementById('invoicePrintHost');
+  if(staleInvoiceDoc) staleInvoiceDoc.remove();
+  if(S.showInvoiceDoc){
+    const holder = document.createElement('div');
+    holder.id = 'invoicePrintHost';
+    holder.innerHTML = renderInvoiceDoc();
+    document.body.appendChild(holder);
+  }
   document.querySelectorAll('[data-field]').forEach(el=>{
     el.addEventListener('input', e=>{
       const key = el.getAttribute('data-field');
       const form = el.closest('[data-form]')?.getAttribute('data-form');
       if(form==='task'){ S.newTaskText = el.value; return; }
       if(form==='comment'){ S.newCommentText = el.value; return; }
-      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm, askai:S.askAIForm, dresscode:S.dressCodeForm };
+      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm, askai:S.askAIForm, dresscode:S.dressCodeForm, newinvoice:S.newInvoiceForm };
       const target = formTargets[form] || S.newLeadForm;
       target[key] = el.type==='checkbox'? el.checked : el.value;
       if(el.type==='checkbox') render();
@@ -3143,6 +3302,20 @@ function bindGlobal(){
       case 'itinerary-overlay-close': if(e.target===t) { S.showItinerary=false; S.itineraryEventId=null; render(); } break;
       case 'print-itinerary': window.print(); break;
       case 'email-itinerary': doEmailItinerary(id); break;
+      case 'open-new-invoice': closeAllOverlays(); S.newInvoiceForm={items:[]}; S.showNewInvoice=true; render(); break;
+      case 'add-invoice-item': {
+        const f = S.newInvoiceForm; const label=(f.itemLabel||'').trim(); const amt=Number(f.itemAmount);
+        if(!label || !amt || amt<=0){ toast('Enter a description and amount.', 'error'); break; }
+        f.items = f.items || []; f.items.push({id:'LI-'+randInt(1,999999), label, amount:amt});
+        f.itemLabel=''; f.itemAmount=''; render(); break;
+      }
+      case 'remove-invoice-item': { const f=S.newInvoiceForm; f.items.splice(Number(t.getAttribute('data-idx')),1); render(); break; }
+      case 'submit-invoice': doSubmitInvoice(); break;
+      case 'view-invoice': closeAllOverlays(); S.invoiceDocId=id; S.showInvoiceDoc=true; render(); break;
+      case 'close-invoice-doc': S.showInvoiceDoc=false; S.invoiceDocId=null; render(); break;
+      case 'invoice-overlay-close': if(e.target===t) { S.showInvoiceDoc=false; S.invoiceDocId=null; render(); } break;
+      case 'print-invoice': window.print(); break;
+      case 'mark-invoice-paid': doMarkInvoicePaid(id); break;
       case 'send-reminder': doSendReminder(id); break;
       case 'preview-reminder': S.showReminderPreview=true; render(); break;
       case 'close-reminder-preview': S.showReminderPreview=false; render(); break;
