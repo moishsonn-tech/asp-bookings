@@ -212,7 +212,7 @@ tr.row-link:hover td{ background:var(--surface-2); }
 /* ============ FORM ============ */
 .field{ display:flex; flex-direction:column; gap:5px; }
 .field label{ font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--ink-3); }
-.field input, .field select, .field textarea{ padding:9px 11px; border-radius:var(--r-sm); border:1px solid var(--border-strong); background:var(--surface); color:var(--ink); }
+.field input, .field select, .field textarea{ padding:9px 11px; border-radius:var(--r-sm); border:1px solid var(--border-strong); background:var(--surface); color:var(--ink); font-size:16px; }
 .field input:focus, .field select:focus, .field textarea:focus{ border-color:var(--accent); }
 .field-row{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .artist-pick{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
@@ -412,7 +412,6 @@ body:has(.bottom-nav) .install-banner{ bottom:80px; }
   .grid-3{ grid-template-columns:1fr 1fr; }
   .newlead-btn{ padding:9px 12px; flex:none; }
   .askai-btn{ padding:9px 10px; flex:none; }
-  .askai-btn .btn-label{ display:none; }
   .chip-name{ display:none; }
   .user-chip{ padding:4px; }
   .cal-cell{ aspect-ratio:1; padding:3px 2px; }
@@ -492,8 +491,6 @@ const ICO = {
   suitcase:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 13h20"/></svg>',
   checkSquare:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/></svg>',
   edit:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>',
-  camera:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2Z"/><circle cx="12" cy="13" r="4"/></svg>',
-  play:'<svg class="ico" width="12" height="12" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M6 4.5v15l13-7.5Z"/></svg>',
 };
 
 /* ============ SEED DATA ============ */
@@ -737,7 +734,6 @@ function makeEvent(artist, offsetDays, forceStatus){
     charges,
     dressCode: rng()<0.5 ? pick(DRESS_CODES) : '',
     prepSheets: [],
-    eventMedia: [],
     createdAt: fmtISO(created),
     log: log.sort((a,b)=>a.ts-b.ts).map(l=>({...l, ts:l.ts.toISOString()})),
   };
@@ -767,7 +763,7 @@ function makeInternalEvent(artist, offsetDays, type){
     reminderIntervalDays:5, lastReminderSent:null,
     flightNeeded, flightBooked:false, flight:null,
     groundTransportNeeded, groundTransportBooked:false, groundTransport:null,
-    charges:[], prepSheets:[], eventMedia:[],
+    charges:[], prepSheets:[],
     createdAt: fmtISO(created),
     log: [{ts:created.toISOString(), type:'system', text:`${type} scheduled for ${artist.name}.`}],
   };
@@ -839,8 +835,6 @@ let S = {
   finArtistFilter: 'all',
   newLeadForm: {},
   flightForm: {},
-  publicUploadForm: {},
-  publicUploadDone: false,
 };
 function loadEvents(){
   try{ const raw = localStorage.getItem(LS_KEY); if(raw) return JSON.parse(raw); }catch(e){}
@@ -1058,7 +1052,6 @@ function exportCSV(){
 /* ============ RENDER: SHELL ============ */
 function render(){
   const app = document.getElementById('app');
-  if(location.hash === '#upload'){ app.innerHTML = renderPublicUploadPage(); bindGlobal(); return; }
   const prevScroll = { sheet: document.querySelector('.sheet')?.scrollTop, modal: document.querySelector('.modal')?.scrollTop };
   const hadOverlay = !!document.querySelector('.overlay');
   if(!S.user){ app.innerHTML = renderLogin() + renderInstallBanner(); bindGlobal(); return; }
@@ -1257,18 +1250,6 @@ function renderSettingsPage(){
   const st = getUserSettings(S.user);
   const themeIdx = THEME_OPTIONS.findIndex(([k])=>k===THEME_PREF);
   return `
-  ${isAdmin? `<div class="card card-pad" style="margin-bottom:20px;">
-    <h3 style="margin-bottom:8px;">Event Media Upload Link</h3>
-    <p style="font-size:12.5px;color:var(--ink-2);margin:0 0 12px;">Share this link or QR code with photographers, videographers, or guests after an event so they can upload photos and videos straight into ASP Bookings. No account needed — the link only lets them upload, they can't view anyone else's files.</p>
-    <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
-      <img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(uploadLinkUrl())}" alt="Event media upload QR code" width="140" height="140" style="border-radius:8px;background:#fff;padding:8px;flex:none;"/>
-      <div style="flex:1;min-width:200px;display:flex;flex-direction:column;gap:8px;">
-        <div class="u-mono" style="font-size:11.5px;background:var(--surface-2);padding:8px 10px;border-radius:8px;word-break:break-all;">${esc(uploadLinkUrl())}</div>
-        <button class="btn btn-sm" data-action="share-upload-link" style="align-self:flex-start;">${ICO.share} Copy / Share Link</button>
-      </div>
-    </div>
-  </div>` : ''}
-
   <div class="card card-pad" style="margin-bottom:20px;">
     <h3 style="margin-bottom:12px;">Sign-in &amp; Security</h3>
     ${st.passkeys.map(pk=>`<div class="passkey-row">
@@ -1355,37 +1336,6 @@ function renderAccountChooser(){
       </button>`).join('')}
     </div>
     <p style="text-align:center;color:var(--ink-3);font-size:10.5px;margin-top:16px;">Demo mode — pick any account to preview that person's view. In production, each person only ever sees their own account.</p>
-  </div></div>`;
-}
-
-function renderPublicUploadPage(){
-  const f = S.publicUploadForm || {};
-  return `<div class="login-wrap"><div class="login-card" data-form="publicupload" style="text-align:center;">
-    <div class="wordmark" style="font-size:1.4rem;justify-content:center;"><span class="mark"><i></i><i></i><i></i><i></i><i></i></span>ASP<small>Bookings</small></div>
-    <h2 style="font-size:1.05rem;margin:16px 0 4px;">Upload Event Photos &amp; Videos</h2>
-    <p style="color:var(--ink-2);font-size:12.5px;margin:0 0 22px;">For photographers, videographers, and guests — no account needed. This link only lets you upload; you can't view anyone else's files.</p>
-    ${S.publicUploadDone ? `
-      <div style="padding:10px 0 4px;">
-        <div style="color:var(--accent-ink,var(--accent));font-size:15px;font-weight:700;margin-bottom:6px;">${ICO.check} Thanks!</div>
-        <p style="color:var(--ink-2);font-size:13px;margin:0;">Your files were uploaded — ASP will take it from here.</p>
-        <button class="btn btn-sm" style="margin-top:16px;" data-action="reset-public-upload">Upload More</button>
-      </div>
-    ` : `
-      <div style="text-align:left;display:flex;flex-direction:column;gap:14px;">
-        <div class="field"><label>Which Artist</label>
-          <div class="artist-pick">${ARTISTS.map(a=>`<div class="artist-opt ${f.artistId===a.id?'sel':''}" data-action="pick-public-artist" data-id="${a.id}">
-            <span class="avatar" data-slot="${a.slot}" style="width:34px;height:34px;font-size:12px;">${a.initials}</span><span>${esc(a.name)}</span></div>`).join('')}</div>
-        </div>
-        <div class="field-row">
-          <div class="field"><label>Event Date</label><input type="date" data-field="date" value="${esc(f.date||'')}"/></div>
-          <div class="field"><label>Your Name (optional)</label><input data-field="uploaderName" value="${esc(f.uploaderName||'')}" placeholder="e.g. Studio 9 Photography"/></div>
-        </div>
-        <label class="btn btn-primary btn-block" style="cursor:pointer;">${ICO.camera} Choose Photos &amp; Videos
-          <input type="file" accept="image/*,video/*" multiple data-action="public-upload-files" style="display:none;"/>
-        </label>
-        <p style="font-size:10.5px;color:var(--ink-3);text-align:center;margin:0;">Pick the artist and date first — upload starts as soon as you choose files.</p>
-      </div>
-    `}
   </div></div>`;
 }
 
@@ -2149,7 +2099,7 @@ function renderAskAIModal(){
         `).join('')}
       </div>
       <div style="padding:12px 16px;border-top:1px solid var(--border);display:flex;gap:8px;">
-        <input id="askAIInput" data-field="query" value="${esc(f.query||'')}" placeholder="Ask a question…" style="flex:1;padding:9px 14px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface);font-size:13px;"/>
+        <input id="askAIInput" data-field="query" value="${esc(f.query||'')}" placeholder="Ask a question…" style="flex:1;padding:9px 14px;border-radius:999px;border:1px solid var(--border-strong);background:var(--surface);font-size:16px;"/>
         <button class="icon-btn" style="background:var(--accent);color:#fff;border-radius:50%;" data-action="submit-ask-ai" title="Send">${ICO.chev('r')}</button>
       </div>
     </div>
@@ -2299,7 +2249,6 @@ function renderEventSheet(ev){
           ${isAdmin? `<button class="btn btn-sm" data-action="email-itinerary" data-id="${ev.id}">${ICO.mail} Email to Artist</button>` : ''}
         </div>` : ''}
         ${renderPrepSheets(ev, isAdmin)}
-        ${renderEventMedia(ev, isAdmin)}
         ${!isAdmin ? `<div>
             <div style="display:flex;gap:8px;">
               <button class="btn btn-primary btn-block" data-action="gcal" data-id="${ev.id}">${ICO.cal} Add to Google Calendar</button>
@@ -2430,23 +2379,6 @@ function renderPrepSheets(ev, isAdmin){
   </div>`;
 }
 
-function renderEventMedia(ev, isAdmin){
-  const files = ev.eventMedia||[];
-  return `<div class="card card-pad">
-    <div class="u-label" style="margin-bottom:8px;">Event Photos &amp; Videos</div>
-    ${files.length? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:8px;margin-bottom:10px;">${files.map(m=>`
-      <div style="position:relative;aspect-ratio:1;border-radius:8px;overflow:hidden;background:var(--surface-2);border:1px solid var(--border);">
-        <a href="${m.dataUrl}" target="_blank" rel="noopener" style="display:block;width:100%;height:100%;" title="${esc(m.name)} — ${esc(m.uploaderName)}">
-          ${m.type==='video'
-            ? `<video src="${m.dataUrl}" style="width:100%;height:100%;object-fit:cover;" muted></video>`
-            : `<img src="${m.dataUrl}" style="width:100%;height:100%;object-fit:cover;" alt="${esc(m.name)}"/>`}
-        </a>
-        ${m.type==='video'?`<span style="position:absolute;left:4px;bottom:4px;color:#fff;background:rgba(0,0,0,.55);border-radius:6px;width:20px;height:20px;display:flex;align-items:center;justify-content:center;pointer-events:none;">${ICO.play}</span>`:''}
-        ${isAdmin?`<button class="icon-btn" data-action="remove-event-media" data-id="${ev.id}" data-mediaid="${m.id}" title="Remove" style="position:absolute;top:4px;right:4px;background:rgba(0,0,0,.55);color:#fff;width:22px;height:22px;">${ICO.x}</button>`:''}
-      </div>`).join('')}</div>` : `<p style="font-size:12.5px;color:var(--ink-3);margin:0;">No photos or videos uploaded yet.</p>`}
-    <p style="font-size:10.5px;color:var(--ink-3);margin:0;">Uploaded by outside contacts via the general event-media upload link — see Settings for the link/QR. Stored in this demo session only.</p>
-  </div>`;
-}
 
 function renderAdminActions(ev){
   const buttons=[];
@@ -2799,49 +2731,6 @@ function doRemovePrep(id, prepId){
   ev.prepSheets = (ev.prepSheets||[]).filter(f=>f.id!==prepId);
   saveEvents(); openEvent(id);
 }
-function uploadLinkUrl(){ return location.origin + location.pathname + '#upload'; }
-function doShareUploadLink(){
-  const url = uploadLinkUrl();
-  if(navigator.share){
-    navigator.share({title:'ASP Event Media Upload', text:'Upload event photos & videos here:', url}).catch(()=>{});
-  } else if(navigator.clipboard){
-    navigator.clipboard.writeText(url).then(()=>toast('Upload link copied to clipboard.', 'system')).catch(()=>toast('Could not copy — try again.', 'system'));
-  } else {
-    toast('Sharing not supported in this browser.', 'system');
-  }
-}
-function doPublicUpload(files){
-  const f = S.publicUploadForm || {};
-  if(!f.artistId){ toast('Choose which artist first.', 'system'); return; }
-  if(!f.date){ toast('Enter the event date first.', 'system'); return; }
-  const matches = S.events.filter(e=>e.artistId===f.artistId && e.date===f.date);
-  if(!matches.length){ toast('No event found for that artist on that date — double check with ASP office.', 'system'); return; }
-  const uploaderName = (f.uploaderName||'').trim();
-  let remaining = files.length, succeeded = 0;
-  Array.from(files).forEach(file=>{
-    const reader = new FileReader();
-    const finish = ()=>{
-      remaining--;
-      if(remaining===0){
-        saveEvents();
-        if(succeeded) S.publicUploadDone = true; else toast('Could not read the selected files.', 'system');
-        render();
-      }
-    };
-    reader.onload = ()=>{
-      const item = {id:'EM-'+Date.now()+Math.random().toString(36).slice(2,6), name:file.name, type: file.type.startsWith('video')?'video':'image', dataUrl:reader.result, uploadedAt:fmtISO(new Date()), uploaderName: uploaderName||'Anonymous'};
-      matches.forEach((ev,i)=>{ ev.eventMedia = ev.eventMedia||[]; ev.eventMedia.push(item); if(i===0) logEvent(ev,'system', `${uploaderName||'Someone'} uploaded event media.`); });
-      succeeded++; finish();
-    };
-    reader.onerror = ()=>{ finish(); };
-    reader.readAsDataURL(file);
-  });
-}
-function doRemoveEventMedia(id, mediaId){
-  const ev = getEvent(id);
-  ev.eventMedia = (ev.eventMedia||[]).filter(m=>m.id!==mediaId);
-  saveEvents(); openEvent(id);
-}
 function doShareEvent(id){
   S.showEventMenu = false;
   const ev = getEvent(id); const a = artistById(ev.artistId);
@@ -2993,7 +2882,7 @@ function doSubmitLead(){
     balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
     flightNeeded: !!f.flightNeeded, flightBooked:false, flight:null,
     groundTransportNeeded: !!f.groundTransportNeeded, groundTransportBooked:false, groundTransport:null,
-    charges: isInternal? [] : (f.charges||[]), dressCode: isInternal? '' : (f.dressCode||''), prepSheets:[], eventMedia:[], createdAt: fmtISO(new Date()),
+    charges: isInternal? [] : (f.charges||[]), dressCode: isInternal? '' : (f.dressCode||''), prepSheets:[], createdAt: fmtISO(new Date()),
     log:[{ts:new Date().toISOString(), type:'system', text: isInternal? `${resolvedType} scheduled for ${artistById(f.artistId).name}.` : `Lead created for ${artistById(f.artistId).name} — client info entered by management.`}],
   };
   S.events.unshift(ev); saveEvents();
@@ -3023,7 +2912,7 @@ function doSubmitBlockTime(){
       balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
       flightNeeded:false, flightBooked:false, flight:null,
       groundTransportNeeded:false, groundTransportBooked:false, groundTransport:null,
-      charges:[], dressCode:'', prepSheets:[], eventMedia:[], createdAt: fmtISO(new Date()),
+      charges:[], dressCode:'', prepSheets:[], createdAt: fmtISO(new Date()),
       log:[{ts:new Date().toISOString(), type:'system', text:`${artist.name} blocked ${allDay?'this date':`${fmtTime(f.startTime)}–${fmtTime(f.endTime)}`}${f.note?': '+f.note:''}.`}],
     };
     if(findConflicts(ev).length) hadConflict = true;
@@ -3123,7 +3012,7 @@ function bindGlobal(){
       const form = el.closest('[data-form]')?.getAttribute('data-form');
       if(form==='task'){ S.newTaskText = el.value; return; }
       if(form==='comment'){ S.newCommentText = el.value; return; }
-      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm, publicupload:S.publicUploadForm, askai:S.askAIForm, dresscode:S.dressCodeForm };
+      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm, askai:S.askAIForm, dresscode:S.dressCodeForm };
       const target = formTargets[form] || S.newLeadForm;
       target[key] = el.type==='checkbox'? el.checked : el.value;
       if(el.type==='checkbox') render();
@@ -3231,10 +3120,6 @@ function bindGlobal(){
       case 'confirm-add-charge': doAddCharge(id); break;
       case 'remove-charge': doRemoveCharge(id, t.getAttribute('data-chargeid')); break;
       case 'remove-prep': doRemovePrep(id, t.getAttribute('data-prepid')); break;
-      case 'remove-event-media': doRemoveEventMedia(id, t.getAttribute('data-mediaid')); break;
-      case 'pick-public-artist': S.publicUploadForm.artistId = id; render(); break;
-      case 'reset-public-upload': S.publicUploadForm={}; S.publicUploadDone=false; render(); break;
-      case 'share-upload-link': doShareUploadLink(); break;
       case 'view-contract': S.showContract=true; render(); break;
       case 'close-contract': S.showContract=false; render(); break;
       case 'contract-overlay-close': if(e.target===t) { S.showContract=false; render(); } break;
@@ -3310,9 +3195,6 @@ function bindGlobal(){
   document.querySelectorAll('[data-action="upload-prep"]').forEach(inp=>{
     inp.addEventListener('change', ()=>{ if(inp.files.length) doUploadPrep(inp.getAttribute('data-id'), inp.files); });
   });
-  document.querySelectorAll('[data-action="public-upload-files"]').forEach(inp=>{
-    inp.addEventListener('change', ()=>{ if(inp.files.length) doPublicUpload(inp.files); });
-  });
   document.querySelectorAll('[data-action="upload-project-image"]').forEach(inp=>{
     inp.addEventListener('change', ()=>{ if(inp.files.length) doUploadProjectImage(inp.getAttribute('data-id'), inp.files); });
   });
@@ -3339,7 +3221,6 @@ function bindGlobal(){
 }
 
 render();
-window.addEventListener('hashchange', render);
 if('serviceWorker' in navigator){
   window.addEventListener('load', ()=>{ navigator.serviceWorker.register('sw.js').catch(()=>{}); });
 }
