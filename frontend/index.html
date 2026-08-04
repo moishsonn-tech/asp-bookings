@@ -2903,6 +2903,7 @@ function doSubmitBlockTime(){
   if(!f.date){ toast('Pick a date.', 'system'); return; }
   const allDay = f.allDay!==false;
   if(!allDay && (!f.startTime || !f.endTime)){ toast('Enter a start and end time, or check All day.', 'system'); return; }
+  if(!allDay && f.startTime>=f.endTime){ toast('End time must be after the start time.', 'system'); return; }
   const artist = artistById(S.user);
   const start = new Date(f.date+'T00:00:00');
   const end = f.endDate ? new Date(f.endDate+'T00:00:00') : start;
