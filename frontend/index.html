@@ -486,7 +486,7 @@ const ICO = {
   settings:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>',
   menu:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16M4 12h16M4 18h16"/></svg>',
   key:'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg>',
-  mic:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><path d="M12 19v3"/><path d="M8 22h8"/></svg>',
+  mic:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="7.5" y="2" width="9" height="13" rx="4.5"/><path d="M9.5 6h5M9.5 9.5h5"/><path d="M12 15v7"/></svg>',
   car:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 17h-.5a1.5 1.5 0 0 1-1.5-1.5v-2a2 2 0 0 1 .15-.76l1.7-4A2 2 0 0 1 6.7 7.5h10.6a2 2 0 0 1 1.85 1.24l1.7 4c.1.24.15.5.15.76v2a1.5 1.5 0 0 1-1.5 1.5H19"/><path d="M5 17h9"/><circle cx="7" cy="17" r="2"/><circle cx="17" cy="17" r="2"/></svg>',
   suitcase:'<svg class="ico" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/><path d="M2 13h20"/></svg>',
   checkSquare:'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/></svg>',
@@ -500,12 +500,12 @@ const pick = (arr)=>arr[Math.floor(rng()*arr.length)];
 const randInt = (a,b)=>Math.floor(rng()*(b-a+1))+a;
 
 let ARTISTS = [
-  {id:'baruch', name:'Baruch Levine', slot:1, initials:'BL', email:'baruch@aspmanagement.com'},
-  {id:'benny',  name:'Benny Friedman', slot:2, initials:'BF', email:'benny@aspmanagement.com'},
-  {id:'moshe',  name:'Moshe Tischler', slot:3, initials:'MT', email:'moshe@aspmanagement.com'},
-  {id:'yaakov', name:'Yaakov Rosenblum', slot:4, initials:'YR', email:'yaakov@aspmanagement.com'},
-  {id:'eli',    name:'Eli Marcus', slot:7, initials:'EM', email:'eli@aspmanagement.com'},
-  {id:'dovie',  name:'Dovie Nueberger', slot:6, initials:'DN', email:'dovie@aspmanagement.com'},
+  {id:'baruch', name:'Baruch Levine', slot:1, initials:'BL', email:'baruch@aspmanagement.com', role:'Singer'},
+  {id:'benny',  name:'Benny Friedman', slot:2, initials:'BF', email:'benny@aspmanagement.com', role:'Singer'},
+  {id:'moshe',  name:'Moshe Tischler', slot:3, initials:'MT', email:'moshe@aspmanagement.com', role:'Singer'},
+  {id:'yaakov', name:'Yaakov Rosenblum', slot:4, initials:'YR', email:'yaakov@aspmanagement.com', role:'Singer'},
+  {id:'eli',    name:'Eli Marcus', slot:7, initials:'EM', email:'eli@aspmanagement.com', role:'Singer'},
+  {id:'dovie',  name:'Dovie Nueberger', slot:6, initials:'DN', email:'dovie@aspmanagement.com', role:'Comedian'},
 ];
 const artistById = (id)=>ARTISTS.find(a=>a.id===id);
 const ARTISTS_LS_KEY = 'asp_mock_artists_v1';
@@ -514,7 +514,8 @@ function saveArtists(){ try{ localStorage.setItem(ARTISTS_LS_KEY, JSON.stringify
 { const saved = loadArtists();
   if(saved && saved.length){
     const canonical = {baruch:1, benny:2, moshe:3, yaakov:4, eli:7, dovie:6};
-    saved.forEach(a=>{ if(canonical[a.id]) a.slot = canonical[a.id]; });
+    const canonicalRole = {dovie:'Comedian'};
+    saved.forEach(a=>{ if(canonical[a.id]) a.slot = canonical[a.id]; if(!a.role) a.role = canonicalRole[a.id]||'Singer'; });
     ARTISTS = saved; saveArtists();
   } else saveArtists();
 }
@@ -1573,7 +1574,7 @@ function renderArtistsPage(){
       return `<div class="card card-pad" style="cursor:pointer;display:flex;flex-direction:column;gap:10px;" data-action="open-artist" data-id="${a.id}">
         <div style="display:flex;align-items:center;gap:10px;">
           <span class="avatar" data-slot="${a.slot}" style="width:44px;height:44px;font-size:15px;">${a.initials}</span>
-          <div><strong style="font-family:var(--font-display);font-size:1.05rem;display:block;">${esc(a.name)}</strong><span class="u-label">Artist</span></div>
+          <div><strong style="font-family:var(--font-display);font-size:1.05rem;display:block;">${esc(a.name)}</strong><span class="u-label">${esc(a.role||'Artist')}</span></div>
         </div>
         <div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2);padding-top:6px;border-top:1px solid var(--border);">
           <span>${upcoming} upcoming</span><span class="u-mono">${money(ytdPayout)} YTD payout</span>
@@ -1589,7 +1590,7 @@ function renderArtistDetailPage(artistId){
   return `
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:18px;">
       <span class="avatar" data-slot="${a.slot}" style="width:52px;height:52px;font-size:17px;">${a.initials}</span>
-      <div><h2 style="font-size:1.5rem;">${esc(a.name)}</h2><span class="u-label">Viewing as Management</span></div>
+      <div><h2 style="font-size:1.5rem;">${esc(a.name)}</h2><span class="u-label">${esc(a.role||'Artist')} · Viewing as Management</span></div>
     </div>
     <div class="card card-pad" style="margin-bottom:20px;">${renderCalendarPage(evs, {noLegend:true, singleArtist:true, miniEmbed:true})}</div>
     <div class="section-head"><h2>Upcoming (${upcoming.length})</h2></div>
@@ -2479,6 +2480,7 @@ function renderDressCodeFormOverlay(){
 function renderContractDoc(){
   const ev = getEvent(S.eventId); if(!ev) return '';
   const artist = artistById(ev.artistId);
+  const isComedian = artist.role==='Comedian';
   const signed = ev.depositReceived;
   const draft = ev.status==='lead';
   return `<div class="overlay center" data-action="contract-overlay-close">
@@ -2519,7 +2521,7 @@ function renderContractDoc(){
         </div>
 
         <div class="doc-section">
-          <p style="font-size:13px;margin:0 0 4px;"><strong>Artist shall provide:</strong><br/>Live Vocal Performance${hoursBetween(ev.time,ev.endTime)? ` for up to ${hoursBetween(ev.time,ev.endTime)} hours`:''}</p>
+          <p style="font-size:13px;margin:0 0 4px;"><strong>Artist shall provide:</strong><br/>${isComedian?'Live Comedy Performance':'Live Vocal Performance'}${hoursBetween(ev.time,ev.endTime)? ` for up to ${hoursBetween(ev.time,ev.endTime)} hours`:''}</p>
           <p style="font-size:13px;margin:0;"><strong>Client shall provide:</strong><br/>Payment</p>
         </div>
 
@@ -2535,9 +2537,15 @@ function renderContractDoc(){
             <li>Should the Artist be canceled within 40 days prior to the event, full payment is required.</li>
             <li>In the event that the Artist is unable to perform, the Client will be paid back in full.</li>
             <li>A non-refundable deposit of ${money(ev.commission)} (15%) must be paid upon signing the contract. The rest of the balance must be paid prior to the event.</li>
+            ${isComedian? `
+            <li>No waitstaff, bar staff, or venue personnel should walk through the performance area or serve food/drinks during the performance, in order to maintain audience focus and preserve the show.</li>
+            <li>Video or audio recording of the performance may not be taken or disseminated in any way without the express written consent of the Artist.</li>
+            <li>The Client grants the Artist approval rights over any and all advertisements, promotional materials, and graphics referencing the performance.</li>
+            ` : `
             <li>A Mechitzah is required at all events with dancing.</li>
-            <li>If the Artist is asked to stay beyond the agreed upon time, a ${money(OVERTIME_PER_HALF_HOUR)} per half hour charge shall be paid in overtime fees.</li>
             <li>The Artist may refuse to sing any non-Jewish or secular songs at his discretion.</li>
+            `}
+            <li>If the Artist is asked to stay beyond the agreed upon time, a ${money(OVERTIME_PER_HALF_HOUR)} per half hour charge shall be paid in overtime fees.</li>
             <li>If the event is cancelled due to weather or travel issues, the Artist agrees to return the deposit.</li>
             <li>Any and all changes to this agreement must be approved and initiated by both Client and Artist.</li>
             <li>${ev.flightNeeded? 'Air travel for the Performer is arranged and confirmed separately by ASP; details are provided once booked.' : 'This engagement does not include Performer travel arrangements.'}</li>
@@ -2767,7 +2775,7 @@ function doAddArtist(){
   const email = `${first}${last? '.'+last : ''}@aspmanagement.com`;
   const initials = (parts[0][0] + (parts[1]? parts[1][0] : '')).toUpperCase();
   const slot = (ARTISTS.length % 6) + 1;
-  const artist = {id, name, slot, initials, email};
+  const artist = {id, name, slot, initials, email, role:'Singer'};
   ARTISTS.push(artist); saveArtists();
   S.showAddArtist = false; S.addArtistForm = {};
   S.newArtistWelcome = {name, email};
