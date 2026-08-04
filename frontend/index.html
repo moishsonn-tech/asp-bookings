@@ -1135,7 +1135,7 @@ function pageTitle(){
 function renderUserChip(){
   if(isAdminUser(S.user)){
     const u = adminById(S.user);
-    return `<div class="user-chip"><span class="avatar" data-slot="0" style="background:var(--ink);width:22px;height:22px;font-size:10px;">${u.initials}</span> <span class="chip-name">${esc(u.name)}</span>
+    return `<div class="user-chip"><span class="avatar" data-slot="0" style="background:var(--ink);color:var(--page);width:22px;height:22px;font-size:10px;">${u.initials}</span> <span class="chip-name">${esc(u.name)}</span>
       <button class="icon-btn" data-action="logout" title="Switch user">${ICO.logout}</button></div>`;
   }
   const a = artistById(S.user);
@@ -1201,7 +1201,7 @@ function renderMobileMenu(isAdmin){
       </div>
       <div class="rail-foot">
         <div style="display:flex;align-items:center;gap:10px;padding:4px 10px 12px;">
-          <span class="avatar" data-slot="${isAdmin?'0':who.slot}" style="width:32px;height:32px;font-size:11px;${isAdmin?'background:var(--ink);':''}">${who.initials}</span>
+          <span class="avatar" data-slot="${isAdmin?'0':who.slot}" style="width:32px;height:32px;font-size:11px;${isAdmin?'background:var(--ink);color:var(--page);':''}">${who.initials}</span>
           <span style="font-size:13px;font-weight:600;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(who.name)}</span>
         </div>
         <a href="#" class="rail-link" data-action="logout" style="color:var(--crit);">${ICO.logout} Log Out</a>
@@ -1327,7 +1327,7 @@ function renderAccountChooser(){
     <div class="chooser-list">
       <div class="chooser-divider">ASP Office</div>
       ${ADMIN_USERS.map(u=>`<button class="chooser-row" data-action="login" data-user="${u.id}">
-        <span class="avatar" data-slot="0" style="width:32px;height:32px;font-size:11px;background:var(--ink);">${u.initials}</span>
+        <span class="avatar" data-slot="0" style="width:32px;height:32px;font-size:11px;background:var(--ink);color:var(--page);">${u.initials}</span>
         <span><strong>${esc(u.name)}</strong><span class="chooser-email">${esc(u.email)}</span></span>
       </button>`).join('')}
       <div class="chooser-divider">Artists</div>
