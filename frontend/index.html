@@ -406,7 +406,7 @@ body:has(.bottom-nav) .install-banner{ bottom:80px; }
   .bn-item span{ max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .bn-item.active{ color:var(--ink); font-weight:700; background:var(--surface); box-shadow:var(--shadow-sm); }
   .bn-item.active .ico{ color:var(--ink-3); }
-  .bn-item[data-view="projects"], .bn-item[data-view="a_projects"], .bn-item[data-view="pricing"], .bn-item[data-view="financials"]{ display:none; }
+  .bn-item[data-view="projects"], .bn-item[data-view="pricing"], .bn-item[data-view="financials"]{ display:none; }
 }
 @media (max-width: 480px){
   .grid-3{ grid-template-columns:1fr 1fr; }
@@ -521,68 +521,128 @@ function saveArtists(){ try{ localStorage.setItem(ARTISTS_LS_KEY, JSON.stringify
 }
 
 /* ============ PROJECTS ============ */
-const PROJECT_TYPES = {
-  Album: ['Writing','Recording','Mixing & Mastering','Artwork','Release'],
-  Tour: ['Routing','Venue Confirms','Logistics','Promotion','On Tour'],
-  Video: ['Concept','Shoot','Edit','Release'],
-  Show: ['Concept','Production','Promotion','Show Day'],
-};
-const PROJECT_TASK_TEMPLATES = {
-  Album: {
-    'Writing': ['Finalize track list','Book co-writer sessions','Demo rough vocals'],
-    'Recording': ['Book studio time','Track instrumentals','Record lead vocals'],
-    'Mixing & Mastering': ['Send stems to mixer','Approve final mix','Master for streaming + CD'],
-    'Artwork': ['Brief the designer','Approve cover art','Prepare liner notes'],
-    'Release': ['Set release date','Submit to distributors','Plan release promo'],
-  },
-  Tour: {
-    'Routing': ['Pick target cities','Draft the route','Check date conflicts with existing gigs'],
-    'Venue Confirms': ['Reach out to venues','Lock deposits','Sign venue contracts'],
-    'Logistics': ['Book flights & ground transport','Arrange lodging','Confirm production needs per venue'],
-    'Promotion': ['Announce tour dates','Local press outreach per city','Ticketing links live'],
-    'On Tour': ['Daily check-in with artist','Settle venue payments','Track expenses'],
-  },
-  Video: {
-    'Concept': ['Lock concept/treatment','Location scouting','Budget approval'],
-    'Shoot': ['Book crew & equipment','Confirm shoot day schedule','Wardrobe/styling'],
-    'Edit': ['First cut review','Color & sound pass','Client/artist approval'],
-    'Release': ['Set release date','Upload + thumbnail','Promo push'],
-  },
-  Show: {
-    'Concept': ['Define show concept','Budget the production','Pick venue/date'],
-    'Production': ['Book band/production crew','Stage & lighting plan','Rehearsal scheduled'],
-    'Promotion': ['Announce the show','Ticketing live','Press/promo push'],
-    'Show Day': ['Load-in & soundcheck','Day-of run of show','Settle payments'],
-  },
-};
+// Project types are user-editable (see Manage Types on the Projects board) — this is just the
+// starter set. `name` is the stable key project records reference via `project.type`, so renaming
+// a type in-app must cascade to existing projects (see doSaveProjectType) rather than being edited here.
+const DEFAULT_PROJECT_TYPES = [
+  { name:'Album', recurring:false, batchWithRecordingDay:false, suggestedRoles:['Producer','Mixer'],
+    stages:['Writing','Recording','Mixing & Mastering','Artwork','Release'],
+    checklist:{
+      'Writing': ['Finalize track list','Book co-writer sessions','Demo rough vocals'],
+      'Recording': ['Book studio time','Track instrumentals','Record lead vocals'],
+      'Mixing & Mastering': ['Send stems to mixer','Approve final mix','Master for streaming + CD'],
+      'Artwork': ['Brief the designer','Approve cover art','Prepare liner notes'],
+      'Release': ['Set release date','Submit to distributors','Plan release promo'],
+    } },
+  { name:'Album Release Media', recurring:false, batchWithRecordingDay:false, suggestedRoles:['Videographer','Designer'],
+    stages:['Concept','Create','Edit','Release'],
+    checklist:{
+      'Concept': ['Decide what assets are needed (trailer, lyric video, social clips)','Budget approval'],
+      'Create': ['Book crew/shoot day if filming','Gather album art & source audio'],
+      'Edit': ['First cut review','Client/artist approval'],
+      'Release': ['Coordinate release date with the album','Publish + promote'],
+    } },
+  { name:'Tour', recurring:false, batchWithRecordingDay:false, suggestedRoles:['Tour Manager'],
+    stages:['Routing','Venue Confirms','Logistics','Promotion','On Tour'],
+    checklist:{
+      'Routing': ['Pick target cities','Draft the route','Check date conflicts with existing gigs'],
+      'Venue Confirms': ['Reach out to venues','Lock deposits','Sign venue contracts'],
+      'Logistics': ['Book flights & ground transport','Arrange lodging','Confirm production needs per venue'],
+      'Promotion': ['Announce tour dates','Local press outreach per city','Ticketing links live'],
+      'On Tour': ['Daily check-in with artist','Settle venue payments','Track expenses'],
+    } },
+  { name:'Music Video', recurring:false, batchWithRecordingDay:false, suggestedRoles:['Videographer','Location Contact'],
+    stages:['Concept','Shoot','Edit','Release'],
+    checklist:{
+      'Concept': ['Lock concept/treatment','Location scouting','Budget approval'],
+      'Shoot': ['Book crew & equipment','Confirm shoot day schedule','Wardrobe/styling'],
+      'Edit': ['First cut review','Color & sound pass','Client/artist approval'],
+      'Release': ['Set release date','Upload + thumbnail','Promo push'],
+    } },
+  { name:'Wedding Video', recurring:false, batchWithRecordingDay:false, suggestedRoles:['Videographer','Editor','Couple'],
+    stages:['Booking','Shoot','Edit','Delivery'],
+    checklist:{
+      'Booking': ['Confirm date & venue with couple','Sign agreement','Collect deposit'],
+      'Shoot': ['Confirm shot list/timeline with couple','Coordinate with other vendors','Film the event'],
+      'Edit': ['Rough cut','Couple review','Final color & sound pass'],
+      'Delivery': ['Deliver final files','Collect balance','Request testimonial'],
+    } },
+  { name:'Show', recurring:false, batchWithRecordingDay:false, suggestedRoles:[],
+    stages:['Concept','Production','Promotion','Show Day'],
+    checklist:{
+      'Concept': ['Define show concept','Budget the production','Pick venue/date'],
+      'Production': ['Book band/production crew','Stage & lighting plan','Rehearsal scheduled'],
+      'Promotion': ['Announce the show','Ticketing live','Press/promo push'],
+      'Show Day': ['Load-in & soundcheck','Day-of run of show','Settle payments'],
+    } },
+  { name:'Podcast Episode', recurring:true, batchWithRecordingDay:true, suggestedRoles:['Guest','Sponsor'],
+    stages:['Guest Booking','Recording','Editing','Release'],
+    checklist:{
+      'Guest Booking': ['Confirm guest','Send prep questions','Find sponsor for the episode'],
+      'Recording': ['Studio & musicians booked','Record episode'],
+      'Editing': ['Edit episode','Approve final cut'],
+      'Release': ['Set release date','Publish + promote'],
+    } },
+  { name:'Weekly Video Reel', recurring:true, batchWithRecordingDay:false, suggestedRoles:[],
+    stages:['Plan','Film','Edit','Post'],
+    checklist:{
+      'Plan': ['Pick this week\'s concept'],
+      'Film': ['Film the clip'],
+      'Edit': ['Edit & caption'],
+      'Post': ['Post to socials'],
+    } },
+];
+const PROJECT_TYPES_LS_KEY = 'asp_mock_project_types_v1';
+function loadProjectTypes(){ try{ const raw = localStorage.getItem(PROJECT_TYPES_LS_KEY); if(raw) return JSON.parse(raw); }catch(e){} return null; }
+function saveProjectTypes(){ try{ localStorage.setItem(PROJECT_TYPES_LS_KEY, JSON.stringify(PROJECT_TYPES)); }catch(e){} }
+let PROJECT_TYPES = loadProjectTypes();
+if(!PROJECT_TYPES){ PROJECT_TYPES = DEFAULT_PROJECT_TYPES; saveProjectTypes(); }
+function getProjectType(name){ return PROJECT_TYPES.find(t=>t.name===name) || PROJECT_TYPES[0]; }
+
 function buildProjectTasks(type){
+  const pt = getProjectType(type);
   const tasks = [];
-  Object.entries(PROJECT_TASK_TEMPLATES[type]).forEach(([stage, items])=>{
+  Object.entries(pt.checklist||{}).forEach(([stage, items])=>{
     items.forEach(text=> tasks.push({id:'T-'+Math.random().toString(36).slice(2,9), stage, text, done:false}));
   });
   return tasks;
 }
 let PROJID = 1;
-function makeProject(artist, type, title, stageIdx, doneUpTo, dueDate){
-  const stages = PROJECT_TYPES[type];
+function makeProject(artist, type, title, stageIdx, doneUpTo, dueDate, opts={}){
+  const stages = getProjectType(type).stages;
   const tasks = buildProjectTasks(type);
   tasks.forEach(t=>{ if(stages.indexOf(t.stage) < doneUpTo) t.done = true; });
   return {
-    id:'PR-'+(PROJID++), artistId:artist.id, type, title, stage:stages[stageIdx], tasks, comments:[], dueDate: dueDate||null, images:[], links:[],
+    id:'PR-'+(PROJID++), artistId:artist.id, type, title, subtitle: opts.subtitle||'', stage:stages[stageIdx], tasks, comments:[], dueDate: dueDate||null, images:[], links:[],
+    people: opts.people || [],
+    financials: { income:[], expenses:[] },
+    recordingEventId: opts.recordingEventId || null,
     createdAt: fmtISO(addDays(new Date(), -randInt(10,120))),
     log:[{ts:new Date().toISOString(), type:'system', text:`${type} project "${title}" created for ${artist.name}.`}],
   };
 }
 function seedProjects(){
   const projects = [];
-  const titles = { Album:['Unreleased','Chapter Two','Live Sessions'], Tour:['Fall Tour','Winter Run'], Video:['Lead Single','Behind the Scenes'], Show:['Anniversary Concert','Charity Gala'] };
+  const titles = { Album:['Unreleased','Chapter Two','Live Sessions'], Tour:['Fall Tour','Winter Run'], 'Music Video':['Lead Single','Behind the Scenes'], Show:['Anniversary Concert','Charity Gala'] };
+  const seedTypes = ['Album','Tour','Music Video','Show'];
   ARTISTS.slice(0,4).forEach((artist,i)=>{
-    const type = Object.keys(PROJECT_TYPES)[i % 4];
-    const stages = PROJECT_TYPES[type];
+    const type = seedTypes[i % 4];
+    const stages = getProjectType(type).stages;
     const stageIdx = randInt(0, stages.length-1);
     const dueDate = rng()<0.75 ? fmtISO(addDays(new Date(), randInt(-10,90))) : null;
     projects.push(makeProject(artist, type, pick(titles[type]), stageIdx, stageIdx, dueDate));
   });
+  const benny = artistById('benny');
+  if(benny){
+    projects.push(makeProject(benny, 'Podcast Episode', 'Episode — Rabbi Dovid Orlofsky', 1, 1, fmtISO(addDays(new Date(),6)), {
+      subtitle:'Guest: Rabbi Dovid Orlofsky',
+      people:[{id:'PPL-'+randInt(1,999999), role:'Guest', name:'Rabbi Dovid Orlofsky'}, {id:'PPL-'+randInt(1,999999), role:'Sponsor', name:'Continental Ballroom'}],
+    }));
+    projects.push(makeProject(benny, 'Podcast Episode', 'Episode — Yossi Green', 1, 1, fmtISO(addDays(new Date(),13)), {
+      subtitle:'Guest: Yossi Green',
+      people:[{id:'PPL-'+randInt(1,999999), role:'Guest', name:'Yossi Green'}],
+    }));
+  }
   return projects;
 }
 const PROJECTS_LS_KEY = 'asp_mock_projects_v1';
@@ -598,11 +658,21 @@ else {
     if(!p.images){ p.images = []; migrated = true; }
     if(!p.links){ p.links = []; migrated = true; }
     if(p.dueDate === undefined){ p.dueDate = null; migrated = true; }
+    if(p.type==='Video'){ p.type='Music Video'; migrated = true; }
+    if(!p.people){ p.people = []; migrated = true; }
+    if(!p.financials){ p.financials = {income:[], expenses:[]}; migrated = true; }
+    if(p.recordingEventId===undefined){ p.recordingEventId = null; migrated = true; }
+    if(p.subtitle===undefined){ p.subtitle = ''; migrated = true; }
   });
   if(migrated) saveProjects();
 }
 function getProject(id){ return PROJECTS.find(p=>p.id===id); }
 function projectProgress(p){ const done=p.tasks.filter(t=>t.done).length; return {done, total:p.tasks.length}; }
+function projectFinancials(p){
+  const income = (p.financials?.income||[]).reduce((s,i)=>s+(Number(i.amount)||0),0);
+  const expenses = (p.financials?.expenses||[]).reduce((s,i)=>s+(Number(i.amount)||0),0);
+  return {income, expenses, net: income-expenses};
+}
 
 /* ============ CUSTOM INVOICES ============ */
 let INVID = 1;
@@ -851,6 +921,7 @@ let S = {
   addArtistForm:{},
   newArtistWelcome:null,
   projectTypeFilter:'Album',
+  projectArtistFilter:'all',
   pricingArtist: null,
   projectId:null,
   showNewProject:false,
@@ -863,6 +934,12 @@ let S = {
   projectTab:'tasks',
   newCommentText:'',
   newLinkForm:{},
+  showTypeForm:false,
+  editingTypeName:null,
+  typeForm:null,
+  newPersonForm:{},
+  newFinIncomeLabel:'', newFinIncomeAmount:'',
+  newFinExpenseLabel:'', newFinExpenseAmount:'',
   calMonth: (()=>{const d=new Date(); d.setDate(1); return d;})(),
   calViewMode: 'month',
   calDate: (()=>{const d=new Date(); d.setHours(0,0,0,0); return d;})(),
@@ -1041,7 +1118,7 @@ function closeAllOverlays(){
   S.showTransportForm=false; S.showItinerary=false; S.itineraryEventId=null; S.showBlockTime=false; S.showAskAI=false; S.showDressCodeForm=false;
   S.showNewInvoice=false; S.showInvoiceDoc=false; S.invoiceDocId=null;
   S.showAddCharge=false; S.showEventMenu=false; S.showDraftUpdate=false; S.projectTab='tasks'; S.showReminderPreview=false;
-  S.showMobileMenu=false;
+  S.showMobileMenu=false; S.showTypeForm=false; S.editingTypeName=null; S.typeForm=null;
 }
 function navigate(view, opts={}){ closeAllOverlays(); S.view=view; Object.assign(S, opts); render(); window.scrollTo({top:0}); }
 function openEvent(id){ closeAllOverlays(); S.eventId=id; render(); }
@@ -1121,6 +1198,7 @@ function render(){
     ${S.newArtistWelcome ? renderWelcomeEmailPreview() : ''}
     ${S.dayListDate ? renderDayList() : ''}
     ${S.showNewProject ? renderNewProjectModal() : ''}
+    ${S.showTypeForm ? renderProjectTypeFormModal() : ''}
     ${S.projectId ? renderProjectDetail() : ''}
     ${S.eventId ? renderEventSheet(getEvent(S.eventId)) : ''}
     ${S.showReminderPreview ? renderReminderPreview() : ''}
@@ -1161,7 +1239,7 @@ function pageTitle(){
   if(S.eventId){ const ev=getEvent(S.eventId); return ev ? artistById(ev.artistId).name : ''; }
   const t = {
     dashboard:'Dashboard', calendar:'Calendar', leads:'Open Leads', artists:'Artists', financials:'Financials', projects:'Projects', pricing:'Pricing',
-    travel:'Travel', international:'International Opportunities',
+    travel:'Travel', international:'International Opportunities', manage_project_types:'Project Types',
     artist_detail: artistById(S.artistDetailId)?.name || '',
     a_dashboard:'My Dashboard', a_calendar:'Calendar', a_gigs:'My Gigs', a_travel:'Travel', a_financials:'Financials', a_projects:'My Projects', settings:'Settings',
   };
@@ -1181,10 +1259,10 @@ function renderUserChip(){
 
 const MGMT_NAV_ITEMS = [
   ['dashboard','Dashboard',ICO.dash], ['calendar','Calendar',ICO.cal], ['leads','Leads',ICO.leads],
-  ['artists','Artists',ICO.artists], ['travel','Travel',ICO.suitcase], /* ['projects','Projects',ICO.kanban], -- hidden until real projects are in use, see asp_bookings_project memory */ ['pricing','Pricing',ICO.tag], ['financials','Financials',ICO.money],
+  ['artists','Artists',ICO.artists], ['travel','Travel',ICO.suitcase], ['projects','Projects',ICO.kanban], ['pricing','Pricing',ICO.tag], ['financials','Financials',ICO.money],
 ];
 const ARTIST_NAV_ITEMS = [
-  ['a_dashboard','Dashboard',ICO.dash], ['a_calendar','Calendar',ICO.cal], ['a_gigs','My Gigs',ICO.mic], ['a_travel','Travel',ICO.suitcase], ['a_financials','Financials',ICO.money], /* ['a_projects','Projects',ICO.kanban], -- hidden, see above */
+  ['a_dashboard','Dashboard',ICO.dash], ['a_calendar','Calendar',ICO.cal], ['a_gigs','My Gigs',ICO.mic], ['a_travel','Travel',ICO.suitcase], ['a_financials','Financials',ICO.money], ['a_projects','Projects',ICO.kanban],
 ];
 const APP_VERSION = 'v1.0.0';
 const OVERTIME_PER_HALF_HOUR = 250;
@@ -1257,6 +1335,7 @@ function renderView(){
     if(S.view==='artist_detail') return renderArtistDetailPage(S.artistDetailId);
     if(S.view==='financials') return renderFinancialsPage();
     if(S.view==='projects') return renderProjectsBoard();
+    if(S.view==='manage_project_types') return renderManageProjectTypesPage();
     if(S.view==='pricing') return renderPricingPage();
     if(S.view==='international') return renderInternationalPage();
     if(S.view==='travel') return renderTravelPage(S.events);
@@ -1762,7 +1841,9 @@ function renderProjectCard(p){
       <span class="avatar" data-slot="${a.slot}" style="width:24px;height:24px;font-size:9px;">${a.initials}</span>
       <strong style="font-size:12.5px;">${esc(a.name)}</strong>
     </div>
-    <div style="font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:8px;">${esc(p.title)}</div>
+    <div style="font-family:var(--font-display);font-size:14px;font-weight:600;">${esc(p.title)}</div>
+    ${p.subtitle? `<div style="font-size:11.5px;color:var(--ink-2);margin-top:2px;">${esc(p.subtitle)}</div>`:''}
+    <div style="height:8px;"></div>
     ${p.dueDate? `<span class="pill ${overdue?'pill-crit':'pill-neutral'}" style="margin-bottom:8px;">${overdue?'Overdue · ':'Due '}${fmtDateShort(p.dueDate)}</span>`:''}
     <div style="display:flex;align-items:center;gap:6px;">
       <div style="flex:1;height:4px;border-radius:2px;background:var(--surface-3);overflow:hidden;"><div style="height:100%;width:${total?Math.round(done/total*100):0}%;background:var(--accent);"></div></div>
@@ -1771,14 +1852,28 @@ function renderProjectCard(p){
   </div>`;
 }
 function renderProjectsBoard(){
-  const type = S.projectTypeFilter;
-  const stages = PROJECT_TYPES[type];
-  const projects = PROJECTS.filter(p=>p.type===type);
+  const isAdmin = isAdminUser(S.user);
+  const artistFilter = S.projectArtistFilter||'all';
+  const byArtist = artistFilter==='all' ? PROJECTS : PROJECTS.filter(p=>p.artistId===artistFilter);
+  const typesInUse = PROJECT_TYPES.filter(t=>byArtist.some(p=>p.type===t.name));
+  let type = S.projectTypeFilter;
+  if(!typesInUse.some(t=>t.name===type)) type = (typesInUse[0]||PROJECT_TYPES[0])?.name;
+  const pt = getProjectType(type);
+  const stages = pt.stages;
+  const projects = byArtist.filter(p=>p.type===type);
   return `
-  <div class="section-head">
-    <div class="chip-row">${Object.keys(PROJECT_TYPES).map(t=>`<button class="filter-chip ${type===t?'sel':''}" data-action="filter-project-type" data-type="${t}">${t}</button>`).join('')}</div>
-    <button class="btn btn-sm btn-primary" data-action="open-new-project">${ICO.plus} New Project</button>
+  <div class="section-head" style="flex-wrap:wrap;gap:10px;">
+    <div class="chip-row">
+      <button class="filter-chip ${artistFilter==='all'?'sel':''}" data-action="filter-project-artist" data-id="all">All Artists</button>
+      ${ARTISTS.map(a=>`<button class="filter-chip ${artistFilter===a.id?'sel':''}" data-action="filter-project-artist" data-id="${a.id}">${esc(a.name)}</button>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;flex:none;">
+      ${isAdmin? `<button class="btn btn-sm" data-action="nav" data-view="manage_project_types">${ICO.gear} Manage Types</button>`:''}
+      <button class="btn btn-sm btn-primary" data-action="open-new-project">${ICO.plus} ${pt.batchWithRecordingDay? 'New Recording Day' : 'New Project'}</button>
+    </div>
   </div>
+  <div class="chip-row" style="margin-bottom:14px;">${PROJECT_TYPES.map(t=>`<button class="filter-chip ${type===t.name?'sel':''}" data-action="filter-project-type" data-type="${esc(t.name)}">${esc(t.name)}${t.recurring?' ↻':''}</button>`).join('')}</div>
+  ${!projects.length && artistFilter!=='all' ? `<div class="card empty">No ${esc(type)} projects for ${esc(artistById(artistFilter).name)} yet.</div>` : `
   <div class="board">
     ${stages.map(stage=>{
       const colProjects = projects.filter(p=>p.stage===stage);
@@ -1790,6 +1885,7 @@ function renderProjectsBoard(){
       </div>`;
     }).join('')}
   </div>
+  `}
   `;
 }
 function renderArtistProjects(artistId){
@@ -1798,6 +1894,74 @@ function renderArtistProjects(artistId){
     <div class="section-head"><h2>My Projects (${projects.length})</h2></div>
     ${projects.length? `<div class="grid grid-3">${projects.map(p=>renderProjectCard(p)).join('')}</div>` : `<div class="card empty">No projects yet.</div>`}
   `;
+}
+function renderManageProjectTypesPage(){
+  return `
+  <button class="icon-btn" data-action="nav" data-view="projects" title="Back to Projects" style="margin-bottom:14px;">${ICO.chev('l')}</button>
+  <div class="section-head"><h2>Project Types (${PROJECT_TYPES.length})</h2>
+    <button class="btn btn-sm btn-primary" data-action="open-new-type">${ICO.plus} New Type</button>
+  </div>
+  <div class="grid grid-3">
+    ${PROJECT_TYPES.map(pt=>{
+      const inUse = PROJECTS.filter(p=>p.type===pt.name).length;
+      return `<div class="card card-pad">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+          <strong style="font-family:var(--font-display);font-size:15px;">${esc(pt.name)}</strong>
+          <span style="display:flex;gap:2px;flex:none;">
+            <button class="icon-btn" data-action="edit-project-type" data-name="${esc(pt.name)}" title="Edit" style="width:26px;height:26px;">${ICO.edit}</button>
+            <button class="icon-btn" data-action="delete-project-type" data-name="${esc(pt.name)}" title="Delete" style="width:26px;height:26px;">${ICO.trash}</button>
+          </span>
+        </div>
+        <div style="font-size:12px;color:var(--ink-2);margin-bottom:10px;">${pt.stages.map(esc).join(' → ')}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;">
+          ${pt.recurring? `<span class="pill pill-accent">Recurring</span>`:''}
+          ${pt.batchWithRecordingDay? `<span class="pill pill-neutral">Recording Day batches</span>`:''}
+          <span class="pill pill-neutral">${inUse} project${inUse===1?'':'s'}</span>
+        </div>
+      </div>`;
+    }).join('')}
+  </div>
+  `;
+}
+function renderProjectTypeFormModal(){
+  const f = S.typeForm;
+  const isNew = !S.editingTypeName;
+  return `<div class="overlay center" data-action="overlay-close-typeform">
+    <div class="modal" data-stop data-form="typeform" style="max-width:520px;">
+      <div class="sheet-head"><h2 style="font-size:1.3rem;">${isNew? 'New Project Type' : 'Edit Project Type'}</h2><button class="icon-btn" data-action="close-type-form">${ICO.x}</button></div>
+      <div class="sheet-body">
+        <div class="field"><label>Type Name</label><input data-field="name" value="${esc(f.name||'')}" placeholder="e.g. Podcast Episode"/></div>
+
+        <div class="field" style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="typeRecurring" data-field="recurring" ${f.recurring?'checked':''} style="width:16px;height:16px;"/>
+          <label for="typeRecurring" style="margin:0;">This is a recurring project (e.g. a weekly/biweekly series)</label>
+        </div>
+        ${f.recurring? `<div class="field" style="display:flex;align-items:center;gap:8px;padding-left:24px;">
+          <input type="checkbox" id="typeBatch" data-field="batchWithRecordingDay" ${f.batchWithRecordingDay?'checked':''} style="width:16px;height:16px;"/>
+          <label for="typeBatch" style="margin:0;">Multiple are recorded together in one session (like a podcast Recording Day) — batch-create them together and book one shared studio day</label>
+        </div>` : ''}
+
+        <div class="field"><label>Suggested "Who's Involved" Roles (optional, comma-separated)</label><input data-field="suggestedRolesText" value="${esc(f.suggestedRolesText||'')}" placeholder="e.g. Guest, Sponsor"/></div>
+
+        <div class="field"><label>Stages & Checklist</label>
+          <p style="font-size:11.5px;color:var(--ink-3);margin:0 0 10px;">Add each stage of this project's pipeline, then list the checklist tasks for that stage — one per line.</p>
+          ${(f.stages||[]).map(s=>`<div class="card card-pad" style="margin-bottom:10px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <strong style="font-size:13px;">${esc(s.name)}</strong>
+              <button class="icon-btn" data-action="remove-type-stage" data-uid="${s.uid}" style="width:22px;height:22px;">${ICO.x}</button>
+            </div>
+            <textarea data-field="chk_${s.uid}" placeholder="One checklist item per line…" style="width:100%;min-height:70px;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-size:12.5px;font-family:var(--font-body);color:var(--ink);">${esc(f['chk_'+s.uid]||'')}</textarea>
+          </div>`).join('')}
+          <div style="display:flex;gap:6px;">
+            <input data-field="newStageName" value="${esc(f.newStageName||'')}" placeholder="New stage name…" style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);"/>
+            <button class="btn btn-sm" data-action="add-type-stage">${ICO.plus} Add Stage</button>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-block" data-action="save-project-type" style="margin-top:10px;">${isNew? 'Create Type' : 'Save Changes'}</button>
+      </div>
+    </div>
+  </div>`;
 }
 function renderDraftUpdate(p){
   const a = artistById(p.artistId);
@@ -1817,10 +1981,14 @@ function renderProjectDetail(){
   const p = getProject(S.projectId); if(!p) return '';
   const a = artistById(p.artistId);
   const isAdmin = isAdminUser(S.user);
-  const stages = PROJECT_TYPES[p.type];
+  const pt = getProjectType(p.type);
+  const stages = pt.stages;
   const curIdx = stages.indexOf(p.stage);
   const {done,total} = projectProgress(p);
   const suggestions = p.tasks.filter(t=>t.stage===p.stage && !t.done).slice(0,3);
+  const fin = projectFinancials(p);
+  const recordingSiblings = p.recordingEventId ? PROJECTS.filter(x=>x.recordingEventId===p.recordingEventId && x.id!==p.id) : [];
+  const recordingEvent = p.recordingEventId ? getEvent(p.recordingEventId) : null;
 
   return `<div class="overlay" data-action="overlay-close-project">
     <div class="sheet" data-stop>
@@ -1833,6 +2001,35 @@ function renderProjectDetail(){
         <button class="icon-btn" data-action="close-project">${ICO.x}</button>
       </div>
       <div class="sheet-body">
+        <div class="card card-pad">
+          <div class="u-label" style="margin-bottom:10px;">Project Info</div>
+          <div style="display:flex;flex-direction:column;gap:10px;font-size:12.5px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:var(--ink-2);">Artist</span>
+              <span style="display:flex;align-items:center;gap:6px;font-weight:600;${isAdmin?'cursor:pointer;':''}" ${isAdmin?`data-action="open-artist" data-id="${a.id}"`:''}><span class="avatar" data-slot="${a.slot}" style="width:20px;height:20px;font-size:8px;">${a.initials}</span>${esc(a.name)}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:var(--ink-2);">Type</span><span class="pill pill-neutral">${esc(p.type)}</span></div>
+            ${p.subtitle? `<div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:var(--ink-2);">Details</span><span>${esc(p.subtitle)}</span></div>`:''}
+            <div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:var(--ink-2);">Target Date</span>
+              ${isAdmin? `<input type="date" data-action="set-project-due" data-id="${p.id}" value="${p.dueDate||''}" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-size:12.5px;"/>`
+                : (p.dueDate? `<span style="color:${isPast(p.dueDate)?'var(--crit)':'var(--ink-2)'};">${fmtDateShort(p.dueDate)}</span>` : `<span style="color:var(--ink-3);">Not set</span>`)}
+            </div>
+            ${recordingEvent? `<div style="display:flex;justify-content:space-between;align-items:center;"><span style="color:var(--ink-2);">Recording Day</span>
+              <span style="cursor:pointer;color:var(--accent);text-decoration:underline;" data-action="open-event" data-id="${recordingEvent.id}">${fmtDateShort(recordingEvent.date)}${recordingSiblings.length? ` · +${recordingSiblings.length} other episode${recordingSiblings.length===1?'':'s'}` : ''}</span></div>` : ''}
+          </div>
+
+          <div style="margin-top:16px;">
+            <div class="u-label" style="margin-bottom:8px;">Who's Involved</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:${isAdmin?'10px':'0'};">
+              ${(p.people||[]).length? p.people.map(person=>`<span class="pill pill-neutral" style="display:inline-flex;align-items:center;gap:6px;">${esc(person.role)}: ${esc(person.name)}${isAdmin?`<button data-action="remove-person" data-id="${p.id}" data-pid="${person.id}" style="border:none;background:none;cursor:pointer;color:var(--ink-3);padding:0;display:flex;">${ICO.x}</button>`:''}</span>`).join('') : `<span style="font-size:12px;color:var(--ink-3);">Nobody added yet.</span>`}
+            </div>
+            ${isAdmin? `<div data-form="person" style="display:flex;gap:6px;flex-wrap:wrap;">
+              <input data-field="role" list="roleSuggestions-${p.id}" placeholder="Role (e.g. Guest)" style="flex:1;min-width:90px;padding:7px 9px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-size:12px;" value="${esc(S.newPersonForm.role||'')}"/>
+              <datalist id="roleSuggestions-${p.id}">${(pt.suggestedRoles||[]).map(r=>`<option value="${esc(r)}"></option>`).join('')}</datalist>
+              <input data-field="name" placeholder="Name" style="flex:1;min-width:110px;padding:7px 9px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-size:12px;" value="${esc(S.newPersonForm.name||'')}"/>
+              <button class="btn btn-sm" data-action="add-person" data-id="${p.id}">Add</button>
+            </div>` : ''}
+          </div>
+        </div>
+
         <div class="timeline">
           ${stages.map((s,i)=>`<div class="tl-step ${i<curIdx?'done':''} ${i===curIdx?'current':''} ${isAdmin?'clickable':''}" ${isAdmin?`data-action="set-project-stage" data-id="${p.id}" data-stage="${esc(s)}"`:''}><span class="tl-line"></span>
             <span class="tl-dot">${i<curIdx?ICO.check:i+1}</span><span class="tl-label">${esc(s)}</span></div>`).join('')}
@@ -1843,10 +2040,6 @@ function renderProjectDetail(){
             <div class="u-label">Progress</div><span class="u-mono" style="font-size:12px;">${done}/${total} tasks</span>
           </div>
           <div style="height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden;"><div style="height:100%;width:${total?Math.round(done/total*100):0}%;background:var(--good);"></div></div>
-          ${isAdmin? `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;">
-            <span class="u-label">Target Date</span>
-            <input type="date" data-action="set-project-due" data-id="${p.id}" value="${p.dueDate||''}" style="padding:5px 8px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-size:12.5px;"/>
-          </div>` : (p.dueDate? `<div style="display:flex;justify-content:space-between;align-items:center;margin-top:12px;font-size:12.5px;"><span class="u-label">Target Date</span><span class="${isPast(p.dueDate)?'u-mono':'u-mono'}" style="color:${isPast(p.dueDate)?'var(--crit)':'var(--ink-2)'};">${fmtDateShort(p.dueDate)}</span></div>` : '')}
         </div>
 
         <div class="card card-pad" style="border-color:var(--accent);background:var(--accent-wash);">
@@ -1865,6 +2058,7 @@ function renderProjectDetail(){
             <a href="#" class="tab ${S.projectTab==='tasks'?'active':''}" data-action="set-project-tab" data-tab="tasks">Tasks</a>
             <a href="#" class="tab ${S.projectTab==='conversation'?'active':''}" data-action="set-project-tab" data-tab="conversation">Conversation</a>
             <a href="#" class="tab ${S.projectTab==='media'?'active':''}" data-action="set-project-tab" data-tab="media">Media</a>
+            <a href="#" class="tab ${S.projectTab==='financials'?'active':''}" data-action="set-project-tab" data-tab="financials">Financials</a>
             <a href="#" class="tab ${S.projectTab==='activity'?'active':''}" data-action="set-project-tab" data-tab="activity">Activity</a>
           </div>
 
@@ -1924,6 +2118,41 @@ function renderProjectDetail(){
           </div>
           ` : ''}
 
+          ${S.projectTab==='financials' ? `
+          <div class="card card-pad" style="margin-bottom:16px;">
+            <div style="display:flex;justify-content:space-between;font-size:13px;"><span>Income</span><strong style="color:var(--good);">${money(fin.income)}</strong></div>
+            <div style="display:flex;justify-content:space-between;font-size:13px;margin-top:6px;"><span>Expenses</span><strong style="color:var(--crit);">${money(fin.expenses)}</strong></div>
+            <div style="height:1px;background:var(--border);margin:10px 0;"></div>
+            <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700;"><span>Net</span><span style="color:${fin.net>=0?'var(--good)':'var(--crit)'};">${money(fin.net)}</span></div>
+          </div>
+
+          <div class="u-label" style="margin-bottom:8px;">Income</div>
+          <div class="log" style="margin-bottom:10px;">
+            ${(p.financials.income||[]).length? p.financials.income.map(i=>`<div class="log-item" style="align-items:center;">
+              <span style="flex:1;font-size:12.5px;">${esc(i.label)}</span><strong style="font-size:12.5px;">${money(i.amount)}</strong>
+              ${isAdmin?`<button class="icon-btn" data-action="remove-fin-item" data-id="${p.id}" data-kind="income" data-itemid="${i.id}" style="width:22px;height:22px;">${ICO.x}</button>`:''}
+            </div>`).join('') : `<p style="font-size:12px;color:var(--ink-3);margin:0;">No income logged.</p>`}
+          </div>
+          ${isAdmin? `<div data-form="finincome" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;">
+            <input data-field="newFinIncomeLabel" placeholder="e.g. Sponsor — Continental Ballroom" style="flex:2;min-width:140px;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);" value="${esc(S.newFinIncomeLabel||'')}"/>
+            <input data-field="newFinIncomeAmount" type="number" placeholder="Amount" style="flex:1;min-width:80px;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);" value="${esc(S.newFinIncomeAmount||'')}"/>
+            <button class="btn btn-sm" data-action="add-fin-item" data-id="${p.id}" data-kind="income">Add</button>
+          </div>`:''}
+
+          <div class="u-label" style="margin-bottom:8px;">Expenses</div>
+          <div class="log" style="margin-bottom:10px;">
+            ${(p.financials.expenses||[]).length? p.financials.expenses.map(i=>`<div class="log-item" style="align-items:center;">
+              <span style="flex:1;font-size:12.5px;">${esc(i.label)}</span><strong style="font-size:12.5px;">${money(i.amount)}</strong>
+              ${isAdmin?`<button class="icon-btn" data-action="remove-fin-item" data-id="${p.id}" data-kind="expenses" data-itemid="${i.id}" style="width:22px;height:22px;">${ICO.x}</button>`:''}
+            </div>`).join('') : `<p style="font-size:12px;color:var(--ink-3);margin:0;">No expenses logged.</p>`}
+          </div>
+          ${isAdmin? `<div data-form="finexpense" style="display:flex;gap:6px;flex-wrap:wrap;">
+            <input data-field="newFinExpenseLabel" placeholder="e.g. Studio time" style="flex:2;min-width:140px;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);" value="${esc(S.newFinExpenseLabel||'')}"/>
+            <input data-field="newFinExpenseAmount" type="number" placeholder="Amount" style="flex:1;min-width:80px;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);" value="${esc(S.newFinExpenseAmount||'')}"/>
+            <button class="btn btn-sm" data-action="add-fin-item" data-id="${p.id}" data-kind="expenses">Add</button>
+          </div>`:''}
+          ` : ''}
+
           ${S.projectTab==='activity' ? `
           <div class="log">${p.log.slice().reverse().map(l=>`<div class="log-item">
             <span class="log-ico">${l.type==='email'?ICO.mail:l.type==='sms'?ICO.sms:l.type==='success'?ICO.check:ICO.bell}</span>
@@ -1937,21 +2166,36 @@ function renderProjectDetail(){
 }
 function renderNewProjectModal(){
   const f = S.newProjectForm;
-  const type = f.type || 'Album';
+  const type = f.type || (PROJECT_TYPES[0]||{}).name;
+  const pt = getProjectType(type);
+  const isBatch = !!pt.batchWithRecordingDay;
+  const count = f.episodeCount || 2;
   return `<div class="overlay center" data-action="overlay-close-newproject">
     <div class="modal" data-stop data-form="newproject">
-      <div class="sheet-head"><h2 style="font-size:1.3rem;">New Project</h2><button class="icon-btn" data-action="close-new-project">${ICO.x}</button></div>
+      <div class="sheet-head"><h2 style="font-size:1.3rem;">${isBatch? 'New Recording Day' : 'New Project'}</h2><button class="icon-btn" data-action="close-new-project">${ICO.x}</button></div>
       <div class="sheet-body">
         <div class="field"><label>Artist</label>
           <div class="artist-pick">${ARTISTS.map(a=>`<div class="artist-opt ${f.artistId===a.id?'sel':''}" data-action="pick-project-artist" data-id="${a.id}">
             <span class="avatar" data-slot="${a.slot}" style="width:34px;height:34px;font-size:12px;">${a.initials}</span><span>${a.name}</span></div>`).join('')}</div>
         </div>
         <div class="field"><label>Type</label>
-          <div class="chip-row">${Object.keys(PROJECT_TYPES).map(t=>`<button class="filter-chip ${type===t?'sel':''}" data-action="pick-project-type" data-type="${t}">${t}</button>`).join('')}</div>
+          <div class="chip-row">${PROJECT_TYPES.map(t=>`<button class="filter-chip ${type===t.name?'sel':''}" data-action="pick-project-type" data-type="${esc(t.name)}">${esc(t.name)}</button>`).join('')}</div>
         </div>
+        ${isBatch ? `
+        <p style="font-size:11.5px;color:var(--ink-3);margin:0 0 14px;">Book the shared studio day once, then track each guest's episode as its own project with its own release date.</p>
+        <div class="field"><label>Recording Date</label><input type="date" data-field="recordingDate" value="${f.recordingDate||''}"/></div>
+        <div class="field"><label>How many episodes that day?</label>
+          <div class="chip-row">${[2,3].map(n=>`<button class="filter-chip ${count===n?'sel':''}" data-action="pick-episode-count" data-count="${n}">${n}</button>`).join('')}</div>
+        </div>
+        ${Array.from({length:count}).map((_,i)=>`<div class="field"><label>Guest ${i+1}</label><input data-field="guest${i+1}" value="${esc(f['guest'+(i+1)]||'')}" placeholder="Guest name"/></div>`).join('')}
+        <div class="field"><label>First Release Date</label><input type="date" data-field="releaseDate" value="${f.releaseDate||''}"/></div>
+        <div class="field"><label>Days Between Releases</label><input type="number" data-field="releaseCadenceDays" value="${f.releaseCadenceDays||7}"/></div>
+        <button class="btn btn-primary btn-block" data-action="confirm-add-project" style="margin-top:6px;">Book Recording Day + Create Episodes</button>
+        ` : `
         <div class="field"><label>Title</label><input data-field="title" value="${esc(f.title||'')}" placeholder="e.g. Fall Tour 2026"/></div>
         <div class="field"><label>Target Date (optional)</label><input type="date" data-field="dueDate" value="${f.dueDate||''}"/></div>
         <button class="btn btn-primary btn-block" data-action="confirm-add-project" style="margin-top:6px;">Create Project</button>
+        `}
       </div>
     </div>
   </div>`;
@@ -2936,15 +3180,169 @@ function doAddArtist(){
 function logProjectEvent(p, type, text){ p.log.push({ts:new Date().toISOString(), type, text}); }
 function doAddProject(){
   const f = S.newProjectForm;
-  if(!f.artistId || !(f.title||'').trim()){ toast('Pick an artist and enter a title.', 'system'); return; }
-  const type = f.type || 'Album';
+  const type = f.type || (PROJECT_TYPES[0]||{}).name;
+  const pt = getProjectType(type);
+  if(!f.artistId){ toast('Pick an artist.', 'system'); return; }
   const artist = artistById(f.artistId);
+
+  if(pt.batchWithRecordingDay){
+    if(!f.recordingDate){ toast('Pick a recording date.', 'system'); return; }
+    const count = f.episodeCount || 2;
+    const ev = {
+      id:'EV-'+(EVID++), artistId: artist.id, type:'Recording Day', unpaid:true,
+      clientName:null, clientEmail:'', clientPhone:'',
+      date: f.recordingDate, time:'10:00', endTime:null,
+      venue:'', city:'', state:'',
+      price:0, commission:0, balance:0, status:'scheduled', depositReceived:false, depositReceivedDate:null,
+      balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
+      flightNeeded:false, flightBooked:false, flight:null,
+      groundTransportNeeded:false, groundTransportBooked:false, groundTransport:null,
+      charges:[], dressCode:'', prepSheets:[], createdAt: fmtISO(new Date()),
+      log:[{ts:new Date().toISOString(), type:'system', text:`Recording Day scheduled for ${artist.name} — ${count} ${type} project${count===1?'':'s'}.`}],
+    };
+    if(findConflicts(ev).length) toast(`⚠ Scheduling conflict — ${artist.name} already has something this date.`, 'system');
+    S.events.unshift(ev); saveEvents();
+    const cadence = Number(f.releaseCadenceDays)||7;
+    const firstRelease = f.releaseDate || fmtISO(addDays(new Date(f.recordingDate+'T00:00:00'), 7));
+    const created = [];
+    for(let i=0;i<count;i++){
+      const guest = (f['guest'+(i+1)]||'').trim();
+      const due = fmtISO(addDays(new Date(firstRelease+'T00:00:00'), i*cadence));
+      const proj = makeProject(artist, type, guest? `Episode — ${guest}` : `Episode ${i+1} — ${fmtDateShort(f.recordingDate)}`, 1, 1, due, {
+        subtitle: guest? `Guest: ${guest}` : '',
+        people: guest? [{id:'PPL-'+Math.random().toString(36).slice(2,7), role:'Guest', name:guest}] : [],
+        recordingEventId: ev.id,
+      });
+      PROJECTS.unshift(proj); created.push(proj);
+    }
+    saveProjects();
+    toast(`Recording Day booked — ${count} episode project${count===1?'':'s'} created.`, 'success');
+    S.showNewProject=false; S.newProjectForm={};
+    S.projectTypeFilter = type;
+    S.projectId = created[0].id;
+    render();
+    return;
+  }
+
+  if(!(f.title||'').trim()){ toast('Enter a title.', 'system'); return; }
   const proj = makeProject(artist, type, f.title.trim(), 0, 0, f.dueDate||null);
   PROJECTS.unshift(proj); saveProjects();
   S.showNewProject=false; S.newProjectForm={};
   toast(`Project created — starter checklist generated for ${artist.name}.`, 'success');
   S.projectTypeFilter = type;
   S.projectId = proj.id;
+  render();
+}
+function doAddPerson(id){
+  const f = S.newPersonForm;
+  const role = (f.role||'').trim(), name = (f.name||'').trim();
+  if(!role || !name){ toast('Enter a role and a name.', 'system'); return; }
+  const p = getProject(id);
+  p.people = p.people || [];
+  p.people.push({id:'PPL-'+Math.random().toString(36).slice(2,7), role, name});
+  logProjectEvent(p,'system', `${role} added: ${name}`);
+  S.newPersonForm = {}; saveProjects(); render();
+}
+function doRemovePerson(id, personId){
+  const p = getProject(id);
+  p.people = (p.people||[]).filter(x=>x.id!==personId);
+  saveProjects(); render();
+}
+function doAddFinItem(id, kind){
+  const p = getProject(id);
+  const label = (kind==='income'? S.newFinIncomeLabel : S.newFinExpenseLabel || '').trim();
+  const amount = Number(kind==='income'? S.newFinIncomeAmount : S.newFinExpenseAmount) || 0;
+  if(!label || !amount){ toast('Enter a label and an amount.', 'system'); return; }
+  p.financials = p.financials || {income:[], expenses:[]};
+  p.financials[kind].push({id:'FIN-'+Math.random().toString(36).slice(2,9), label, amount});
+  logProjectEvent(p,'system', `${kind==='income'?'Income':'Expense'} added: ${label} (${money(amount)}).`);
+  if(kind==='income'){ S.newFinIncomeLabel=''; S.newFinIncomeAmount=''; } else { S.newFinExpenseLabel=''; S.newFinExpenseAmount=''; }
+  saveProjects(); render();
+}
+function doRemoveFinItem(id, kind, itemId){
+  const p = getProject(id);
+  p.financials[kind] = (p.financials[kind]||[]).filter(i=>i.id!==itemId);
+  saveProjects(); render();
+}
+function blankTypeForm(){ return { name:'', recurring:false, batchWithRecordingDay:false, suggestedRolesText:'', stages:[], newStageName:'' }; }
+function doOpenNewType(){
+  S.editingTypeName = null;
+  S.typeForm = blankTypeForm();
+  S.showTypeForm = true;
+  render();
+}
+function doOpenEditType(name){
+  const pt = getProjectType(name);
+  const f = { name:pt.name, recurring:!!pt.recurring, batchWithRecordingDay:!!pt.batchWithRecordingDay, suggestedRolesText:(pt.suggestedRoles||[]).join(', '), stages:[], newStageName:'' };
+  pt.stages.forEach(s=>{
+    const uid = 'S'+Math.random().toString(36).slice(2,8);
+    f.stages.push({uid, name:s});
+    f['chk_'+uid] = (pt.checklist[s]||[]).join('\n');
+  });
+  S.editingTypeName = name;
+  S.typeForm = f;
+  S.showTypeForm = true;
+  render();
+}
+function doAddTypeStage(){
+  const name = (S.typeForm.newStageName||'').trim();
+  if(!name) return;
+  S.typeForm.stages.push({uid:'S'+Math.random().toString(36).slice(2,8), name});
+  S.typeForm.newStageName='';
+  render();
+}
+function doRemoveTypeStage(uid){
+  S.typeForm.stages = S.typeForm.stages.filter(s=>s.uid!==uid);
+  delete S.typeForm['chk_'+uid];
+  render();
+}
+function doSaveProjectType(){
+  const f = S.typeForm;
+  const name = (f.name||'').trim();
+  if(!name){ toast('Enter a type name.', 'system'); return; }
+  const stageNames = f.stages.map(s=>(s.name||'').trim()).filter(Boolean);
+  if(!stageNames.length){ toast('Add at least one stage.', 'system'); return; }
+  const isNew = !S.editingTypeName;
+  const nameTaken = PROJECT_TYPES.some(t=>t.name===name && t.name!==S.editingTypeName);
+  if(nameTaken){ toast('A type with that name already exists.', 'system'); return; }
+  const checklist = {};
+  f.stages.forEach(s=>{
+    const sn = (s.name||'').trim(); if(!sn) return;
+    checklist[sn] = (f['chk_'+s.uid]||'').split('\n').map(x=>x.trim()).filter(Boolean);
+  });
+  const typeObj = {
+    name, stages: stageNames, checklist,
+    recurring: !!f.recurring,
+    batchWithRecordingDay: !!(f.recurring && f.batchWithRecordingDay),
+    suggestedRoles: (f.suggestedRolesText||'').split(',').map(x=>x.trim()).filter(Boolean),
+  };
+  if(isNew){
+    PROJECT_TYPES.push(typeObj);
+  } else {
+    const idx = PROJECT_TYPES.findIndex(t=>t.name===S.editingTypeName);
+    PROJECT_TYPES[idx] = typeObj;
+    let projectsTouched = false;
+    PROJECTS.forEach(p=>{
+      if(p.type!==S.editingTypeName) return;
+      if(name!==S.editingTypeName){ p.type = name; projectsTouched = true; }
+      if(!stageNames.includes(p.stage)){ p.stage = stageNames[0]; logProjectEvent(p,'system',`Stage list updated for this project type — moved to ${stageNames[0]}.`); projectsTouched = true; }
+    });
+    if(projectsTouched) saveProjects();
+    if(S.projectTypeFilter===S.editingTypeName) S.projectTypeFilter = name;
+  }
+  saveProjectTypes();
+  S.showTypeForm = false; S.editingTypeName = null; S.typeForm = null;
+  toast(isNew? 'Project type created.' : 'Project type updated.', 'success');
+  render();
+}
+function doDeleteProjectType(name){
+  const inUse = PROJECTS.filter(p=>p.type===name).length;
+  if(inUse){ toast(`${inUse} project${inUse===1?'':'s'} still use this type — reassign or delete them first.`, 'system'); return; }
+  if(PROJECT_TYPES.length<=1){ toast('Keep at least one project type.', 'system'); return; }
+  PROJECT_TYPES = PROJECT_TYPES.filter(t=>t.name!==name);
+  saveProjectTypes();
+  if(S.projectTypeFilter===name) S.projectTypeFilter = PROJECT_TYPES[0].name;
+  toast('Project type deleted.', 'success');
   render();
 }
 function doSetProjectStage(id, stage){
@@ -3180,7 +3578,7 @@ function bindGlobal(){
       const form = el.closest('[data-form]')?.getAttribute('data-form');
       if(form==='task'){ S.newTaskText = el.value; return; }
       if(form==='comment'){ S.newCommentText = el.value; return; }
-      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm, askai:S.askAIForm, dresscode:S.dressCodeForm, newinvoice:S.newInvoiceForm };
+      const formTargets = { flight:S.flightForm, transport:S.transportForm, charge:S.addChargeForm, addartist:S.addArtistForm, newproject:S.newProjectForm, projectlink:S.newLinkForm, blocktime:S.blockTimeForm, askai:S.askAIForm, dresscode:S.dressCodeForm, newinvoice:S.newInvoiceForm, typeform:S.typeForm, person:S.newPersonForm, finincome:S, finexpense:S };
       const target = formTargets[form] || S.newLeadForm;
       target[key] = el.type==='checkbox'? el.checked : el.value;
       if(el.type==='checkbox') render();
@@ -3333,6 +3731,7 @@ function bindGlobal(){
       case 'disconnect-calendar': { const st=getUserSettings(S.user); st.calendarConnected=false; saveAllSettings(); toast('Google Calendar disconnected.', 'system'); render(); break; }
       case 'export-csv': exportCSV(); break;
       case 'filter-project-type': S.projectTypeFilter = t.getAttribute('data-type'); render(); break;
+      case 'filter-project-artist': S.projectArtistFilter = t.getAttribute('data-id'); render(); break;
       case 'open-project': closeAllOverlays(); S.projectId = id; render(); break;
       case 'close-project': S.projectId = null; S.showDraftUpdate=false; S.projectTab='tasks'; render(); break;
       case 'overlay-close-project': if(e.target===t){ S.projectId=null; S.showDraftUpdate=false; S.projectTab='tasks'; render(); } break;
@@ -3348,12 +3747,25 @@ function bindGlobal(){
       case 'draft-update': S.showDraftUpdate = true; render(); break;
       case 'cancel-draft-update': S.showDraftUpdate = false; render(); break;
       case 'send-project-update': doSendProjectUpdate(id); break;
-      case 'open-new-project': closeAllOverlays(); S.newProjectForm={type:'Album'}; S.showNewProject=true; render(); break;
+      case 'add-person': doAddPerson(id); break;
+      case 'remove-person': doRemovePerson(id, t.getAttribute('data-pid')); break;
+      case 'add-fin-item': doAddFinItem(id, t.getAttribute('data-kind')); break;
+      case 'remove-fin-item': doRemoveFinItem(id, t.getAttribute('data-kind'), t.getAttribute('data-itemid')); break;
+      case 'open-new-project': { const preselect = S.projectTypeFilter; closeAllOverlays(); S.newProjectForm={type: PROJECT_TYPES.some(pt=>pt.name===preselect)? preselect : (PROJECT_TYPES[0]||{}).name}; S.showNewProject=true; render(); break; }
       case 'close-new-project': S.showNewProject=false; render(); break;
       case 'overlay-close-newproject': if(e.target===t){ S.showNewProject=false; render(); } break;
       case 'pick-project-artist': S.newProjectForm.artistId = id; render(); break;
       case 'pick-project-type': S.newProjectForm.type = t.getAttribute('data-type'); render(); break;
+      case 'pick-episode-count': S.newProjectForm.episodeCount = Number(t.getAttribute('data-count')); render(); break;
       case 'confirm-add-project': doAddProject(); break;
+      case 'open-new-type': doOpenNewType(); break;
+      case 'edit-project-type': doOpenEditType(t.getAttribute('data-name')); break;
+      case 'delete-project-type': doDeleteProjectType(t.getAttribute('data-name')); break;
+      case 'close-type-form': S.showTypeForm=false; S.editingTypeName=null; S.typeForm=null; render(); break;
+      case 'overlay-close-typeform': if(e.target===t){ S.showTypeForm=false; S.editingTypeName=null; S.typeForm=null; render(); } break;
+      case 'add-type-stage': doAddTypeStage(); break;
+      case 'remove-type-stage': doRemoveTypeStage(t.getAttribute('data-uid')); break;
+      case 'save-project-type': doSaveProjectType(); break;
       case 'open-add-artist': closeAllOverlays(); S.addArtistForm={}; S.showAddArtist=true; render(); break;
       case 'close-add-artist': S.showAddArtist=false; render(); break;
       case 'overlay-close-addartist': if(e.target===t){ S.showAddArtist=false; render(); } break;
