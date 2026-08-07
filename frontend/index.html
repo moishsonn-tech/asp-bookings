@@ -276,7 +276,7 @@ tr.row-link:hover td{ background:var(--surface-2); }
 .board::-webkit-scrollbar{ height:8px; }
 .board::-webkit-scrollbar-track{ background:transparent; }
 .board::-webkit-scrollbar-thumb{ background:var(--border-strong); border-radius:99px; }
-.board-col{ flex:none; width:216px; scroll-snap-align:start; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-md); padding:10px; transition:.14s ease; }
+.board-col{ flex:1 1 190px; min-width:190px; max-width:250px; scroll-snap-align:start; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-md); padding:10px; transition:.14s ease; }
 .board-col.drag-over{ border-color:var(--accent); background:var(--accent-wash); }
 .board-col-head{ display:flex; justify-content:space-between; align-items:center; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-2); padding:2px 4px 10px; }
 .board-col-count{ background:var(--surface-3); color:var(--ink-3); border-radius:999px; padding:1px 7px; font-size:10.5px; }
@@ -374,8 +374,11 @@ body:has(.bottom-nav) .install-banner{ bottom:80px; }
   .tl-dot{ width:20px; height:20px; font-size:9.5px; }
   .tl-line{ left:calc(-50% + 10px); width:calc(100% - 20px); }
   .tl-label{ font-size:8.5px; }
-  .board{ overflow-x:visible; flex-wrap:wrap; }
-  .board-col{ width:100%; }
+  .board{ overflow-x:auto; flex-wrap:nowrap; scroll-snap-type:x mandatory; margin:0 -12px; padding-left:12px; padding-right:12px; }
+  .board-col{ flex:none; min-width:0; width:84vw; max-width:340px; scroll-snap-align:center; }
+  .projects-toolbar{ flex-wrap:wrap; }
+  .projects-toolbar .tabbar{ flex:1 1 100% !important; order:1; margin:0 -12px; padding:0 12px; }
+  .projects-toolbar-actions{ order:2; flex:1 1 100% !important; justify-content:flex-end; padding-bottom:10px !important; }
   .fin-chart{ gap:6px !important; }
   .table-cards table, .table-cards tbody, .table-cards tr, .table-cards td{ display:block; width:100%; }
   .table-cards thead{ display:none; }
@@ -1869,11 +1872,11 @@ function renderProjectsBoard(){
     <button class="filter-chip ${artistFilter==='all'?'sel':''}" data-action="filter-project-artist" data-id="all">All Artists</button>
     ${ARTISTS.map(a=>`<button class="filter-chip ${artistFilter===a.id?'sel':''}" data-action="filter-project-artist" data-id="${a.id}"><span class="dot" data-slot="${a.slot}"></span>${esc(a.name.split(' ')[0])}</button>`).join('')}
   </div>
-  <div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);margin-bottom:14px;">
+  <div class="projects-toolbar" style="display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);margin-bottom:14px;">
     <div class="tabbar" style="flex:1;min-width:0;overflow-x:auto;border-bottom:none;flex-wrap:nowrap;">
       ${PROJECT_TYPES.map(t=>`<a href="#" class="tab ${type===t.name?'active':''}" style="white-space:nowrap;" data-action="filter-project-type" data-type="${esc(t.name)}">${esc(t.name)}${t.recurring?' ↻':''}</a>`).join('')}
     </div>
-    <div style="display:flex;gap:6px;flex:none;padding-bottom:8px;">
+    <div class="projects-toolbar-actions" style="display:flex;gap:6px;flex:none;padding-bottom:8px;">
       ${isAdmin? `<button class="icon-btn" data-action="nav" data-view="manage_project_types" title="Manage Project Types">${ICO.gear}</button>`:''}
       <button class="btn btn-sm btn-primary" data-action="open-new-project">${ICO.plus} ${pt.batchWithRecordingDay? 'New Recording Day' : 'New Project'}</button>
     </div>
