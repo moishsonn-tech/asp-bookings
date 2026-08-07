@@ -272,8 +272,11 @@ tr.row-link:hover td{ background:var(--surface-2); }
 .sparkbar b{ flex:1; background:var(--accent); border-radius:2px 2px 0 0; opacity:.85; min-width:3px; }
 
 /* ============ PROJECTS BOARD ============ */
-.board{ display:flex; gap:14px; overflow-x:auto; padding-bottom:10px; align-items:flex-start; }
-.board-col{ flex:none; width:240px; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-md); padding:10px; transition:.14s ease; }
+.board{ display:flex; gap:12px; overflow-x:auto; padding-bottom:14px; align-items:flex-start; scroll-snap-type:x proximity; scrollbar-width:thin; }
+.board::-webkit-scrollbar{ height:8px; }
+.board::-webkit-scrollbar-track{ background:transparent; }
+.board::-webkit-scrollbar-thumb{ background:var(--border-strong); border-radius:99px; }
+.board-col{ flex:none; width:216px; scroll-snap-align:start; background:var(--surface-2); border:1px solid var(--border); border-radius:var(--r-md); padding:10px; transition:.14s ease; }
 .board-col.drag-over{ border-color:var(--accent); background:var(--accent-wash); }
 .board-col-head{ display:flex; justify-content:space-between; align-items:center; font-size:11.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--ink-2); padding:2px 4px 10px; }
 .board-col-count{ background:var(--surface-3); color:var(--ink-3); border-radius:999px; padding:1px 7px; font-size:10.5px; }
@@ -1862,17 +1865,19 @@ function renderProjectsBoard(){
   const stages = pt.stages;
   const projects = byArtist.filter(p=>p.type===type);
   return `
-  <div class="section-head" style="flex-wrap:wrap;gap:10px;">
-    <div class="chip-row">
-      <button class="filter-chip ${artistFilter==='all'?'sel':''}" data-action="filter-project-artist" data-id="all">All Artists</button>
-      ${ARTISTS.map(a=>`<button class="filter-chip ${artistFilter===a.id?'sel':''}" data-action="filter-project-artist" data-id="${a.id}">${esc(a.name)}</button>`).join('')}
+  <div class="chip-row" style="margin-bottom:12px;">
+    <button class="filter-chip ${artistFilter==='all'?'sel':''}" data-action="filter-project-artist" data-id="all">All Artists</button>
+    ${ARTISTS.map(a=>`<button class="filter-chip ${artistFilter===a.id?'sel':''}" data-action="filter-project-artist" data-id="${a.id}"><span class="dot" data-slot="${a.slot}"></span>${esc(a.name.split(' ')[0])}</button>`).join('')}
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border);margin-bottom:14px;">
+    <div class="tabbar" style="flex:1;min-width:0;overflow-x:auto;border-bottom:none;flex-wrap:nowrap;">
+      ${PROJECT_TYPES.map(t=>`<a href="#" class="tab ${type===t.name?'active':''}" style="white-space:nowrap;" data-action="filter-project-type" data-type="${esc(t.name)}">${esc(t.name)}${t.recurring?' ↻':''}</a>`).join('')}
     </div>
-    <div style="display:flex;gap:8px;flex:none;">
-      ${isAdmin? `<button class="btn btn-sm" data-action="nav" data-view="manage_project_types">${ICO.gear} Manage Types</button>`:''}
+    <div style="display:flex;gap:6px;flex:none;padding-bottom:8px;">
+      ${isAdmin? `<button class="icon-btn" data-action="nav" data-view="manage_project_types" title="Manage Project Types">${ICO.gear}</button>`:''}
       <button class="btn btn-sm btn-primary" data-action="open-new-project">${ICO.plus} ${pt.batchWithRecordingDay? 'New Recording Day' : 'New Project'}</button>
     </div>
   </div>
-  <div class="chip-row" style="margin-bottom:14px;">${PROJECT_TYPES.map(t=>`<button class="filter-chip ${type===t.name?'sel':''}" data-action="filter-project-type" data-type="${esc(t.name)}">${esc(t.name)}${t.recurring?' ↻':''}</button>`).join('')}</div>
   ${!projects.length && artistFilter!=='all' ? `<div class="card empty">No ${esc(type)} projects for ${esc(artistById(artistFilter).name)} yet.</div>` : `
   <div class="board">
     ${stages.map(stage=>{
@@ -1932,31 +1937,41 @@ function renderProjectTypeFormModal(){
       <div class="sheet-body">
         <div class="field"><label>Type Name</label><input data-field="name" value="${esc(f.name||'')}" placeholder="e.g. Podcast Episode"/></div>
 
-        <div class="field" style="display:flex;align-items:center;gap:8px;">
-          <input type="checkbox" id="typeRecurring" data-field="recurring" ${f.recurring?'checked':''} style="width:16px;height:16px;"/>
-          <label for="typeRecurring" style="margin:0;">This is a recurring project (e.g. a weekly/biweekly series)</label>
-        </div>
-        ${f.recurring? `<div class="field" style="display:flex;align-items:center;gap:8px;padding-left:24px;">
-          <input type="checkbox" id="typeBatch" data-field="batchWithRecordingDay" ${f.batchWithRecordingDay?'checked':''} style="width:16px;height:16px;"/>
-          <label for="typeBatch" style="margin:0;">Multiple are recorded together in one session (like a podcast Recording Day) — batch-create them together and book one shared studio day</label>
-        </div>` : ''}
-
-        <div class="field"><label>Suggested "Who's Involved" Roles (optional, comma-separated)</label><input data-field="suggestedRolesText" value="${esc(f.suggestedRolesText||'')}" placeholder="e.g. Guest, Sponsor"/></div>
-
-        <div class="field"><label>Stages & Checklist</label>
-          <p style="font-size:11.5px;color:var(--ink-3);margin:0 0 10px;">Add each stage of this project's pipeline, then list the checklist tasks for that stage — one per line.</p>
-          ${(f.stages||[]).map(s=>`<div class="card card-pad" style="margin-bottom:10px;">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-              <strong style="font-size:13px;">${esc(s.name)}</strong>
-              <button class="icon-btn" data-action="remove-type-stage" data-uid="${s.uid}" style="width:22px;height:22px;">${ICO.x}</button>
+        <div class="field">
+          <label>Stages</label>
+          <p style="font-size:11.5px;color:var(--ink-3);margin:0 0 10px;">Add each stage of this project's pipeline. Click a stage to add its checklist tasks — one per line.</p>
+          ${(f.stages||[]).map(s=>`<details class="card" style="margin-bottom:8px;padding:0;overflow:hidden;">
+            <summary style="cursor:pointer;list-style:none;display:flex;justify-content:space-between;align-items:center;padding:10px 12px;">
+              <span style="font-size:13px;font-weight:600;">${esc(s.name)}</span>
+              <span style="display:flex;align-items:center;gap:10px;">
+                <span class="u-label" style="font-weight:600;">${(f['chk_'+s.uid]||'').split('\n').map(x=>x.trim()).filter(Boolean).length} tasks</span>
+                <button class="icon-btn" data-action="remove-type-stage" data-uid="${s.uid}" style="width:22px;height:22px;">${ICO.x}</button>
+              </span>
+            </summary>
+            <div style="padding:0 12px 12px;">
+              <textarea data-field="chk_${s.uid}" placeholder="One checklist item per line…" style="width:100%;min-height:70px;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-size:12.5px;font-family:var(--font-body);color:var(--ink);">${esc(f['chk_'+s.uid]||'')}</textarea>
             </div>
-            <textarea data-field="chk_${s.uid}" placeholder="One checklist item per line…" style="width:100%;min-height:70px;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);font-size:12.5px;font-family:var(--font-body);color:var(--ink);">${esc(f['chk_'+s.uid]||'')}</textarea>
-          </div>`).join('')}
+          </details>`).join('')}
           <div style="display:flex;gap:6px;">
             <input data-field="newStageName" value="${esc(f.newStageName||'')}" placeholder="New stage name…" style="flex:1;padding:8px 10px;border-radius:6px;border:1px solid var(--border-strong);background:var(--surface);"/>
             <button class="btn btn-sm" data-action="add-type-stage">${ICO.plus} Add Stage</button>
           </div>
         </div>
+
+        <details style="margin-top:6px;">
+          <summary style="cursor:pointer;font-size:12.5px;font-weight:600;color:var(--ink-2);padding:6px 0;">Advanced settings</summary>
+          <div style="padding-top:8px;">
+            <div class="field" style="display:flex;align-items:center;gap:8px;">
+              <input type="checkbox" id="typeRecurring" data-field="recurring" ${f.recurring?'checked':''} style="width:16px;height:16px;"/>
+              <label for="typeRecurring" style="margin:0;">This is a recurring project (e.g. a weekly/biweekly series)</label>
+            </div>
+            ${f.recurring? `<div class="field" style="display:flex;align-items:center;gap:8px;padding-left:24px;">
+              <input type="checkbox" id="typeBatch" data-field="batchWithRecordingDay" ${f.batchWithRecordingDay?'checked':''} style="width:16px;height:16px;"/>
+              <label for="typeBatch" style="margin:0;">Multiple are recorded together in one session (like a podcast Recording Day) — batch-create them together and book one shared studio day</label>
+            </div>` : ''}
+            <div class="field"><label>Suggested "Who's Involved" Roles (optional, comma-separated)</label><input data-field="suggestedRolesText" value="${esc(f.suggestedRolesText||'')}" placeholder="e.g. Guest, Sponsor"/></div>
+          </div>
+        </details>
 
         <button class="btn btn-primary btn-block" data-action="save-project-type" style="margin-top:10px;">${isNew? 'Create Type' : 'Save Changes'}</button>
       </div>
