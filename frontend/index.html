@@ -7,6 +7,7 @@
 <meta name="apple-mobile-web-app-title" content="ASP Bookings" />
 <link rel="manifest" href="manifest.json" />
 <link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="icon" type="image/png" href="icon-192.png" />
 <style>
 /* ============ TOKENS ============ */
 :root{
@@ -805,10 +806,10 @@ function makeEvent(artist, offsetDays, forceStatus){
   if(depositReceived){ log.push({ts:addDays(created,6), type:'success', text:'Bookkeeping marked booking fee received — job officially booked & locked on calendar.'});
     log.push({ts:addDays(created,6), type:'email', text:'Confirmation emailed to client with date, time & location.'});
     log.push({ts:addDays(created,6), type:'email', text:`Schedule notification sent to ${artist.name}.`}); }
-  if(flightNeeded){ log.push({ts:addDays(created,2), type:'system', text:'Flight needed — bookkeeping notified.'});
-    if(flightBooked) log.push({ts:addDays(created,9), type:'success', text:`Flight booked & added to itinerary — ${artist.name} notified.`}); }
-  if(groundTransportNeeded){ log.push({ts:addDays(created,2), type:'system', text:'Ground transport needed — bookkeeping notified.'});
-    if(groundTransportBooked) log.push({ts:addDays(created,8), type:'success', text:`Driver booked & added to itinerary — ${artist.name} notified.`}); }
+  if(flightNeeded){ log.push({ts:addDays(created,2), type:'email', text:'Flight needed — emailed to the booking secretary with gig details.'});
+    if(flightBooked) log.push({ts:addDays(created,9), type:'email', text:`Flight booked & added to itinerary — Moshe and ${artist.name} notified.`}); }
+  if(groundTransportNeeded){ log.push({ts:addDays(created,2), type:'email', text:'Ground transport needed — emailed to the booking secretary with gig details.'});
+    if(groundTransportBooked) log.push({ts:addDays(created,8), type:'email', text:`Driver booked & added to itinerary — Moshe and ${artist.name} notified.`}); }
   if(balanceReceived){ log.push({ts:addDays(date,1), type:'success', text:'Bookkeeping marked balance received via Zelle — reminders stopped.'}); }
   return {
     id: 'EV-'+(EVID++),
@@ -825,7 +826,7 @@ function makeEvent(artist, offsetDays, forceStatus){
     status,
     depositReceived, depositReceivedDate: depositReceived? fmtISO(addDays(created,6)): null,
     balanceReceived, balanceReceivedDate: balanceReceived? fmtISO(addDays(date,1)): null,
-    reminderIntervalDays: 5,
+    reminderIntervalDays: defaultReminderCadence(fmtISO(date)),
     lastReminderSent: (status==='booked' && !balanceReceived) ? fmtISO(addDays(new Date(),-randInt(1,4))) : null,
     flightNeeded, flightBooked,
     flight: flightBooked ? {
@@ -867,7 +868,7 @@ function makeInternalEvent(artist, offsetDays, type){
     status:'scheduled',
     depositReceived:false, depositReceivedDate:null,
     balanceReceived:false, balanceReceivedDate:null,
-    reminderIntervalDays:5, lastReminderSent:null,
+    reminderIntervalDays: defaultReminderCadence(fmtISO(date)), lastReminderSent:null,
     flightNeeded, flightBooked:false, flight:null,
     groundTransportNeeded, groundTransportBooked:false, groundTransport:null,
     charges:[], prepSheets:[],
@@ -936,6 +937,7 @@ let S = {
   newTaskText:'',
   showDraftUpdate:false,
   showReminderPreview:false,
+  showBookingConfirmation:false,
   showMobileMenu:false,
   projectTab:'tasks',
   newCommentText:'',
@@ -991,6 +993,8 @@ function defaultUserSettings(){
       newLeads: {inApp:true, email:false},
       balanceReminders: {inApp:true, email:false},
       bookingConfirmations: {inApp:true, email:false},
+      weeklyGigDigest: {inApp:false, email:false},
+      dayOfReminder: {inApp:false, email:false},
     },
   };
 }
@@ -998,6 +1002,7 @@ function getUserSettings(userId){
   if(!ALL_SETTINGS[userId]) ALL_SETTINGS[userId] = defaultUserSettings();
   const st = ALL_SETTINGS[userId];
   Object.keys(st.notify).forEach(k=>{ if(typeof st.notify[k]==='boolean') st.notify[k] = {inApp: st.notify[k], email:false}; });
+  NOTIFY_ITEMS.forEach(([key])=>{ if(!st.notify[key]) st.notify[key] = {inApp:false, email:false}; });
   return st;
 }
 
@@ -1026,6 +1031,8 @@ function fmtFlightDateTime(s){
 function addMinutesToTime(t, mins){ const [h,m]=t.split(':').map(Number); const total=(h*60+m+mins+1440)%1440; return `${String(Math.floor(total/60)).padStart(2,'0')}:${String(total%60).padStart(2,'0')}`; }
 function daysUntil(iso){ const today=new Date(); today.setHours(0,0,0,0); const d=new Date(iso+'T00:00:00'); return Math.round((d-today)/86400000); }
 function isPast(iso){ return daysUntil(iso) < 0; }
+// Standard follow-up cadence: every 2 weeks, tightening to weekly once the gig is under a month out.
+function defaultReminderCadence(iso){ return daysUntil(iso) > 30 ? 14 : 7; }
 function fullLocation(ev){
   const parts = [ev.venue, ev.city, ev.state].filter(Boolean);
   return parts.length? parts.join(', ') : 'Location TBD';
@@ -1123,7 +1130,7 @@ function closeAllOverlays(){
   S.dayListDate=null; S.showNewProject=false; S.showFlightForm=false; S.showContract=false;
   S.showTransportForm=false; S.showItinerary=false; S.itineraryEventId=null; S.showBlockTime=false; S.showAskAI=false; S.showDressCodeForm=false;
   S.showNewInvoice=false; S.showInvoiceDoc=false; S.invoiceDocId=null;
-  S.showAddCharge=false; S.showEventMenu=false; S.showDraftUpdate=false; S.projectTab='tasks'; S.showReminderPreview=false;
+  S.showAddCharge=false; S.showEventMenu=false; S.showDraftUpdate=false; S.projectTab='tasks'; S.showReminderPreview=false; S.showBookingConfirmation=false;
   S.showMobileMenu=false; S.showTypeForm=false; S.editingTypeName=null; S.typeForm=null;
 }
 function navigate(view, opts={}){ closeAllOverlays(); S.view=view; Object.assign(S, opts); render(); window.scrollTo({top:0}); }
@@ -1208,6 +1215,7 @@ function render(){
     ${S.projectId ? renderProjectDetail() : ''}
     ${S.eventId ? renderEventSheet(getEvent(S.eventId)) : ''}
     ${S.showReminderPreview ? renderReminderPreview() : ''}
+    ${S.showBookingConfirmation ? renderBookingConfirmationPreview() : ''}
     ${renderInstallBanner()}
   `;
   bindGlobal();
@@ -1245,7 +1253,7 @@ function pageTitle(){
   if(S.eventId){ const ev=getEvent(S.eventId); return ev ? artistById(ev.artistId).name : ''; }
   const t = {
     dashboard:'Dashboard', calendar:'Calendar', leads:'Open Leads', artists:'Artists', financials:'Financials', projects:'Projects', pricing:'Pricing',
-    travel:'Travel', international:'International Opportunities', manage_project_types:'Project Types',
+    travel:'Travel', international:'International Opportunities', manage_project_types:'Project Types', daily_digest:'Daily Digest',
     artist_detail: artistById(S.artistDetailId)?.name || '',
     a_dashboard:'My Dashboard', a_calendar:'Calendar', a_gigs:'My Gigs', a_travel:'Travel', a_financials:'Financials', a_projects:'My Projects', settings:'Settings',
   };
@@ -1344,6 +1352,7 @@ function renderView(){
     if(S.view==='manage_project_types') return renderManageProjectTypesPage();
     if(S.view==='pricing') return renderPricingPage();
     if(S.view==='international') return renderInternationalPage();
+    if(S.view==='daily_digest') return renderDailyDigestPage();
     if(S.view==='travel') return renderTravelPage(S.events);
   } else {
     if(S.view==='a_dashboard') return renderArtistDashboard(S.user);
@@ -1365,6 +1374,8 @@ const NOTIFY_ITEMS = [
   ['newLeads', 'New leads', 'A new booking request comes in', 'ASP books a new gig for you'],
   ['balanceReminders', 'Balance reminders', "A client's remaining balance is coming due", "A client's remaining balance is coming due"],
   ['bookingConfirmations', 'Booking confirmations', 'A gig is signed and officially locked in', 'A gig is signed and officially locked in'],
+  ['weeklyGigDigest', 'Weekly gig digest', '', 'A weekly email listing your gigs for the coming week', true],
+  ['dayOfReminder', 'Day-of reminder', '', "A reminder email the morning of each gig", true],
 ];
 function renderSettingsPage(){
   const isAdmin = isAdminUser(S.user);
@@ -1394,7 +1405,7 @@ function renderSettingsPage(){
 
   <div class="card card-pad" style="margin-bottom:20px;">
     <h3 style="margin-bottom:8px;">Notifications</h3>
-    ${NOTIFY_ITEMS.map(([key,label,adminSub,artistSub])=>`
+    ${NOTIFY_ITEMS.filter(([,,,,artistOnly])=>!artistOnly||!isAdmin).map(([key,label,adminSub,artistSub])=>`
     <div class="settings-row">
       <div><h4>${label}</h4><p>${isAdmin?adminSub:artistSub}</p></div>
       ${isAdmin
@@ -1470,6 +1481,7 @@ function renderWelcomeHeader(name){
 }
 function renderMgmtDashboard(){
   const open = S.events.filter(e=>['lead','negotiating','contract_sent'].includes(e.status));
+  const awaitingDeposit = S.events.filter(e=>e.status==='contract_sent');
   const awaitingBalance = S.events.filter(e=>e.status==='booked' && !e.balanceReceived);
   const upcoming30 = S.events.filter(e=>!isPast(e.date) && daysUntil(e.date)<=30 && ['booked','paid'].includes(e.status));
   const conflictPairs = allConflictPairs().filter(([a,b])=>!isPast(a.date)||!isPast(b.date));
@@ -1486,9 +1498,10 @@ function renderMgmtDashboard(){
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Open Leads</span><span class="val">${open.length}</span><span class="sub">Awaiting contract / deposit</span></div>
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="leads"><span class="u-label">Awaiting Balance</span><span class="val">${awaitingBalance.length}</span><span class="sub">Booked, balance not yet in</span></div>
   </div>
-  <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+  <div class="grid" style="grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:20px;">
     ${statTile('International Opportunities', intlTrips.length, 'Artist traveling — worth adding nearby bookings', 'international')}
     ${statTile('Travel To Arrange', needsTravel.length, 'Flights or drivers still needed', 'travel')}
+    ${statTile('Daily Digest', open.length + awaitingBalance.length, 'Leads to follow up + payments due', 'daily_digest')}
   </div>
 
   ${(!isCEO && conflictPairs.length) ? `
@@ -1513,6 +1526,45 @@ function statTile(label, val, sub, view){
 }
 function subpageBack(){
   return `<button class="icon-btn" data-action="nav" data-view="dashboard" title="Back to Dashboard" style="margin-bottom:14px;">${ICO.chev('l')}</button>`;
+}
+function buildDailyDigestWhatsAppText(openLeads, awaitingDeposit, awaitingBalance){
+  const lines = [`Good morning! Here's today's follow-up list:`, ''];
+  lines.push(`📋 Open Leads (${openLeads.length})`);
+  if(openLeads.length) openLeads.forEach(e=>{ const a=artistById(e.artistId); lines.push(`• ${a.name} — ${e.clientName||e.type}, ${fmtDateShort(e.date)} (${-daysUntil(e.createdAt)}d old)`); });
+  else lines.push('None — all caught up.');
+  lines.push('', `💰 Awaiting Down Payment (${awaitingDeposit.length})`);
+  if(awaitingDeposit.length) awaitingDeposit.forEach(e=>{ const a=artistById(e.artistId); lines.push(`• ${a.name} — ${e.clientName}, ${money(Math.round(e.price*0.15))}`); });
+  else lines.push('None.');
+  lines.push('', `💵 Awaiting Final Payment (${awaitingBalance.length})`);
+  if(awaitingBalance.length) awaitingBalance.forEach(e=>{ const a=artistById(e.artistId); lines.push(`• ${a.name} — ${e.clientName}, ${money(zelleBalance(e))}, due by ${fmtDateShort(e.date)}`); });
+  else lines.push('None.');
+  lines.push('', `Let's follow up on these today!`);
+  return lines.join('\n');
+}
+function renderDailyDigestPage(){
+  const openLeads = S.events.filter(e=>['lead','negotiating','contract_sent'].includes(e.status)).sort((a,b)=>a.createdAt.localeCompare(b.createdAt));
+  const awaitingDeposit = S.events.filter(e=>e.status==='contract_sent');
+  const awaitingBalance = S.events.filter(e=>e.status==='booked' && !e.balanceReceived);
+  const row = (e, extra)=>{ const a=artistById(e.artistId); return `<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px;padding:8px 0;border-bottom:1px solid var(--border);cursor:pointer;" data-action="open-event" data-id="${e.id}">
+    <span><strong>${esc(a.name)}</strong> — ${esc(e.clientName||e.type)}, ${fmtDateShort(e.date)}</span>
+    <span class="u-label">${esc(extra)}</span>
+  </div>`; };
+  return `
+  ${subpageBack()}
+  <div class="section-head"><h2>Daily Digest</h2></div>
+  <p style="font-size:12.5px;color:var(--ink-3);margin:-8px 0 20px;">A preview of what the morning email will contain once it's wired to a real send — see WORKFLOWS.md §1.</p>
+
+  <div class="section-head"><h2>Open Leads Needing Follow-Up (${openLeads.length})</h2></div>
+  ${openLeads.length? `<div class="card card-pad" style="margin-bottom:20px;">${openLeads.map(e=>row(e, `${-daysUntil(e.createdAt)}d old`)).join('')}</div>` : `<div class="card empty" style="margin-bottom:20px;">Nothing open — all caught up.</div>`}
+
+  <div class="section-head"><h2>Awaiting Down Payment (${awaitingDeposit.length})</h2></div>
+  ${awaitingDeposit.length? `<div class="card card-pad" style="margin-bottom:20px;">${awaitingDeposit.map(e=>row(e, money(Math.round(e.price*0.15)))).join('')}</div>` : `<div class="card empty" style="margin-bottom:20px;">Nothing outstanding.</div>`}
+
+  <div class="section-head"><h2>Awaiting Final Payment (${awaitingBalance.length})</h2></div>
+  ${awaitingBalance.length? `<div class="card card-pad" style="margin-bottom:20px;">${awaitingBalance.map(e=>row(e, money(zelleBalance(e)))).join('')}</div>` : `<div class="card empty" style="margin-bottom:20px;">Nothing outstanding.</div>`}
+
+  <button class="btn btn-primary" data-action="copy-daily-digest">${ICO.share} Copy WhatsApp Message for Ilan</button>
+  `;
 }
 function renderInternationalPage(){
   const intlTrips = S.events.filter(e=>isInternational(e) && !e.intlOpportunityDismissed && !isPast(e.date) && ['booked','paid'].includes(e.status)).sort((a,b)=>a.date.localeCompare(b.date));
@@ -1756,6 +1808,10 @@ function renderFinancialsPage(){
   const avg = booked.length ? Math.round(gross/booked.length) : 0;
   const openInvoices = CUSTOM_INVOICES.filter(i=>i.status==='open');
   const openInvoiceTotal = openInvoices.reduce((s,i)=>s+invoiceTotal(i),0);
+  const payoutEligible = filt.filter(e=>e.balanceReceived);
+  const owedToArtists = payoutEligible.filter(e=>!e.artistPaidOut);
+  const owedTotal = owedToArtists.reduce((s,e)=>s+zelleBalance(e),0);
+  const paidOutTotal = payoutEligible.filter(e=>e.artistPaidOut).reduce((s,e)=>s+zelleBalance(e),0);
 
   const months=[]; for(let i=5;i>=0;i--){ const d=new Date(); d.setDate(1); d.setMonth(d.getMonth()-i); months.push(d); }
   const monthlyGross = months.map(md=>{
@@ -1780,6 +1836,25 @@ function renderFinancialsPage(){
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="financials"><span class="u-label">Open Invoices</span><span class="val">${openInvoices.length}</span><span class="sub">Non-gig billing awaiting payment</span></div>
     <div class="card stat-tile" style="cursor:pointer;" data-action="nav" data-view="financials"><span class="u-label">Open Invoice Total</span><span class="val">${money(openInvoiceTotal)}</span><span class="sub">Across ${openInvoices.length} open invoice${openInvoices.length===1?'':'s'}</span></div>
   </div>
+
+  <div class="grid" style="grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px;">
+    <div class="card stat-tile"><span class="u-label">Owed to Artists</span><span class="val">${money(owedTotal)}</span><span class="sub">${owedToArtists.length} gig${owedToArtists.length===1?'':'s'} paid by client, not yet paid out</span></div>
+    <div class="card stat-tile"><span class="u-label">Paid Out</span><span class="val">${money(paidOutTotal)}</span><span class="sub">Settled with artists</span></div>
+  </div>
+
+  <div class="section-head"><h2>Artist Payouts — Gig Breakdown (${payoutEligible.length})</h2></div>
+  ${payoutEligible.length? `<div class="card u-scroll-x table-cards" style="margin-bottom:22px;"><table>
+    <thead><tr><th>Artist</th><th>Client</th><th>Date</th><th>Fee</th><th>ASP Cut</th><th>Charges</th><th>Payout</th><th>Status</th><th></th></tr></thead>
+    <tbody>${payoutEligible.sort((a,b)=>b.date.localeCompare(a.date)).map(e=>{const a=artistById(e.artistId); const amt=zelleBalance(e);
+      return `<tr>
+        <td data-label="Artist">${esc(a.name)}</td><td data-label="Client">${esc(e.clientName)}</td>
+        <td data-label="Date" class="u-mono">${fmtDateShort(e.date)}</td>
+        <td data-label="Fee" class="u-mono">${money(e.price)}</td><td data-label="ASP Cut" class="u-mono">${money(e.commission)}</td>
+        <td data-label="Charges" class="u-mono">${money(chargesTotal(e))}</td><td data-label="Payout" class="u-mono"><strong>${money(amt)}</strong></td>
+        <td data-label="Status"><span class="pill ${e.artistPaidOut?'pill-good':'pill-warn'}">${e.artistPaidOut? 'Paid Out':'Owed'}</span></td>
+        <td data-label=""><button class="btn btn-sm ${e.artistPaidOut?'btn-ghost':'btn-primary'}" data-action="toggle-artist-paidout" data-id="${e.id}">${e.artistPaidOut? 'Unmark':'Mark Paid Out'}</button></td>
+      </tr>`;}).join('')}
+    </tbody></table></div>` : `<div class="card empty" style="margin-bottom:22px;">No completed gigs yet — payouts appear here once a client's balance is received.</div>`}
 
   <div class="card card-pad" style="margin-bottom:20px;">
     <div class="section-head"><h2>Monthly Gross Revenue</h2></div>
@@ -2440,12 +2515,22 @@ function renderAddArtistModal(){
   </div>`;
 }
 
+function zelleBalance(ev){ return ev.balance + chargesTotal(ev); }
+function zelleQrUrl(ev, artist){
+  const zelleText = `Zelle payment to ${artist.email} — ${money(zelleBalance(ev))} for ${artist.name} (${ev.type}, ${fmtDateShort(ev.date)})`;
+  return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(zelleText)}`;
+}
+function renderZelleQrBlock(ev, artist){
+  return `<div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px;background:var(--surface-2);border-radius:var(--r-md);">
+    <img src="${zelleQrUrl(ev,artist)}" alt="Zelle QR code" width="180" height="180" style="border-radius:8px;background:#fff;padding:8px;"/>
+    <span class="u-mono" style="font-size:11.5px;color:var(--ink-2);">${esc(artist.email)}</span>
+  </div>
+  <p style="font-size:10.5px;color:var(--ink-3);margin:14px 0 0;text-align:center;">QR points to a mock Zelle reference — swap in the real Zelle deep link once ASP is online.</p>`;
+}
 function renderReminderPreview(){
   const ev = getEvent(S.eventId); if(!ev) return '';
   const artist = artistById(ev.artistId);
-  const balance = ev.balance + chargesTotal(ev);
-  const zelleText = `Zelle payment to ${artist.email} — ${money(balance)} for ${artist.name} (${ev.type}, ${fmtDateShort(ev.date)})`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=220x220&data=${encodeURIComponent(zelleText)}`;
+  const balance = zelleBalance(ev);
   return `<div class="overlay center" data-action="overlay-close-reminderpreview">
     <div class="doc" data-stop style="width:440px;">
       <div class="sheet-head"><h2 style="font-size:1.1rem;">Reminder Email Preview</h2><button class="icon-btn" data-action="close-reminder-preview">${ICO.x}</button></div>
@@ -2458,11 +2543,29 @@ function renderReminderPreview(){
           <p style="margin:0 0 8px;">Just a reminder — the remaining balance of ${money(balance)} for ${esc(artist.name)}'s ${esc(ev.type)} on ${esc(fmtDate(ev.date))} is due via Zelle. Scan the code below or send to ${esc(artist.email)}.</p>
           ${hasLocation(ev)? `<p style="margin:0 0 8px;">Venue: ${esc(fullLocation(ev))} — <a href="${gmapsUrl(ev)}" target="_blank" rel="noopener" style="color:var(--accent);">Open in Maps</a></p>` : ''}
         </div>
-        <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px;background:var(--surface-2);border-radius:var(--r-md);">
-          <img src="${qrUrl}" alt="Zelle QR code" width="180" height="180" style="border-radius:8px;background:#fff;padding:8px;"/>
-          <span class="u-mono" style="font-size:11.5px;color:var(--ink-2);">${esc(artist.email)}</span>
+        ${renderZelleQrBlock(ev, artist)}
+      </div>
+    </div>
+  </div>`;
+}
+function renderBookingConfirmationPreview(){
+  const ev = getEvent(S.eventId); if(!ev) return '';
+  const artist = artistById(ev.artistId);
+  const balance = zelleBalance(ev);
+  return `<div class="overlay center" data-action="overlay-close-bookingconfirmation">
+    <div class="doc" data-stop style="width:440px;">
+      <div class="sheet-head"><h2 style="font-size:1.1rem;">Booking Confirmation Preview</h2><button class="icon-btn" data-action="close-booking-confirmation">${ICO.x}</button></div>
+      <div class="doc-body" style="padding:24px 26px 30px;">
+        <div style="font-size:12.5px;line-height:1.6;margin-bottom:16px;">
+          <div><strong>To:</strong> ${esc(ev.clientEmail)}</div>
+          <div><strong>Subject:</strong> You're booked! — ${esc(artist.name)}, ${esc(fmtDateShort(ev.date))}</div>
+          <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;"/>
+          <p style="margin:0 0 8px;">Hi ${esc(ev.clientName.split(' ')[0])},</p>
+          <p style="margin:0 0 8px;">You're all set — ${esc(artist.name)} is booked for your ${esc(ev.type)} on ${esc(fmtDate(ev.date))} at ${esc(fmtTime(ev.time))}.</p>
+          ${hasLocation(ev)? `<p style="margin:0 0 8px;">Venue: ${esc(fullLocation(ev))} — <a href="${gmapsUrl(ev)}" target="_blank" rel="noopener" style="color:var(--accent);">Open in Maps</a></p>` : ''}
+          <p style="margin:0 0 8px;">Remaining balance of ${money(balance)} is due via Zelle before the event — scan the code below or send directly to ${esc(artist.email)}.</p>
         </div>
-        <p style="font-size:10.5px;color:var(--ink-3);margin:14px 0 0;text-align:center;">QR points to a mock Zelle reference — swap in the real Zelle deep link once ASP is online.</p>
+        ${renderZelleQrBlock(ev, artist)}
       </div>
     </div>
   </div>`;
@@ -2611,8 +2714,8 @@ function renderFlightBlock(ev, isAdmin){
   if(!ev.flightNeeded) return isAdmin ? `<button class="btn btn-ghost" data-action="toggle-flight" data-id="${ev.id}" style="justify-content:flex-start;color:var(--ink-2);">${ICO.checkSquare} Mark flight needed</button>` : '';
   if(!ev.flightBooked){
     return `<div class="card card-pad" style="border-color:var(--warn);background:var(--warn-wash);">
-      <div style="display:flex;align-items:center;gap:8px;color:var(--warn-ink);font-weight:700;font-size:13px;">${ICO.plane} Flight needed — bookkeeping notified</div>
-      ${isAdmin ? `<button class="btn btn-sm" style="margin-top:10px;" data-action="open-flight-form" data-id="${ev.id}">Add flight info</button>` : `<p style="font-size:12.5px;color:var(--warn-ink);margin:8px 0 0;">Bookkeeping is arranging your flight. You'll be notified once it's booked.</p>`}
+      <div style="display:flex;align-items:center;gap:8px;color:var(--warn-ink);font-weight:700;font-size:13px;">${ICO.plane} Flight needed — booking secretary notified</div>
+      ${isAdmin ? `<button class="btn btn-sm" style="margin-top:10px;" data-action="open-flight-form" data-id="${ev.id}">Add flight info</button>` : `<p style="font-size:12.5px;color:var(--warn-ink);margin:8px 0 0;">The booking secretary is arranging your flight. You'll be notified once it's booked.</p>`}
     </div>`;
   }
   const f = ev.flight;
@@ -2631,8 +2734,8 @@ function renderGroundTransportBlock(ev, isAdmin){
   if(!ev.groundTransportNeeded) return isAdmin ? `<button class="btn btn-ghost" data-action="toggle-ground-transport" data-id="${ev.id}" style="justify-content:flex-start;color:var(--ink-2);">${ICO.checkSquare} Mark ground transport needed</button>` : '';
   if(!ev.groundTransportBooked){
     return `<div class="card card-pad" style="border-color:var(--warn);background:var(--warn-wash);">
-      <div style="display:flex;align-items:center;gap:8px;color:var(--warn-ink);font-weight:700;font-size:13px;">${ICO.car} Driver needed — bookkeeping notified</div>
-      ${isAdmin ? `<button class="btn btn-sm" style="margin-top:10px;" data-action="open-transport-form" data-id="${ev.id}">Add driver info</button>` : `<p style="font-size:12.5px;color:var(--warn-ink);margin:8px 0 0;">Bookkeeping is arranging a driver. You'll be notified once it's booked.</p>`}
+      <div style="display:flex;align-items:center;gap:8px;color:var(--warn-ink);font-weight:700;font-size:13px;">${ICO.car} Driver needed — booking secretary notified</div>
+      ${isAdmin ? `<button class="btn btn-sm" style="margin-top:10px;" data-action="open-transport-form" data-id="${ev.id}">Add driver info</button>` : `<p style="font-size:12.5px;color:var(--warn-ink);margin:8px 0 0;">The booking secretary is arranging a driver. You'll be notified once it's booked.</p>`}
     </div>`;
   }
   const g = ev.groundTransport;
@@ -3020,15 +3123,18 @@ function doSendContract(id){
 }
 function doMarkDeposit(id){
   const ev = getEvent(id); ev.status='booked'; ev.depositReceived=true; ev.depositReceivedDate=fmtISO(new Date());
+  const balance = zelleBalance(ev);
   logEvent(ev,'success','Bookkeeping marked booking fee received — job officially booked & locked on calendar.');
-  logEvent(ev,'email','Confirmation emailed to client with date, time & location.');
-  logEvent(ev,'email',`Schedule notification sent to ${artistById(ev.artistId).name}.`);
-  toast('Booking locked in — client & artist notified.', 'success'); saveEvents(); openEvent(id);
+  logEvent(ev,'email',`Booking confirmation emailed to client with gig details, remaining balance (${money(balance)}), and a Zelle QR code.`);
+  logEvent(ev,'email',`Booking-confirmed notification emailed to ${artistById(ev.artistId).name}, Ilan, and Moshe.`);
+  toast('Booking locked in — client, artist, Ilan & Moshe notified.', 'success');
+  S.showBookingConfirmation = true;
+  saveEvents(); render();
 }
 function doToggleFlight(id){
   const ev = getEvent(id); ev.flightNeeded=true;
-  logEvent(ev,'system','Flight needed — bookkeeping notified.');
-  toast('Bookkeeping notified: flight needed.', 'system'); saveEvents(); openEvent(id);
+  logEvent(ev,'email','Flight needed — emailed to the booking secretary with gig details.');
+  toast('Booking secretary notified: flight needed.', 'email'); saveEvents(); openEvent(id);
 }
 function doSaveFlight(id){
   const ev = getEvent(id); const f=S.flightForm;
@@ -3036,13 +3142,13 @@ function doSaveFlight(id){
   const arrive = f.arriveDate? `${f.arriveDate} ${f.arriveTime||'00:00'}` : '—';
   ev.flight = {airline:f.airline||'—', confirmation:f.confirmation||'—', depart, arrive};
   ev.flightBooked = true;
-  logEvent(ev,'success',`Flight booked & added to itinerary — ${artistById(ev.artistId).name} notified.`);
-  toast('Flight saved — artist notified.', 'success'); S.showFlightForm=false; saveEvents(); openEvent(id);
+  logEvent(ev,'email',`Flight booked & added to itinerary — Moshe and ${artistById(ev.artistId).name} notified.`);
+  toast('Flight saved — Moshe & artist notified.', 'success'); S.showFlightForm=false; saveEvents(); openEvent(id);
 }
 function doToggleGroundTransport(id){
   const ev = getEvent(id); ev.groundTransportNeeded=true;
-  logEvent(ev,'system','Ground transport needed — bookkeeping notified.');
-  toast('Bookkeeping notified: ground transport needed.', 'system'); saveEvents(); openEvent(id);
+  logEvent(ev,'email','Ground transport needed — emailed to the booking secretary with gig details.');
+  toast('Booking secretary notified: ground transport needed.', 'email'); saveEvents(); openEvent(id);
 }
 function doSaveGroundTransport(id){
   const ev = getEvent(id); const f=S.transportForm;
@@ -3050,8 +3156,8 @@ function doSaveGroundTransport(id){
   const dropoffTime = f.dropoffDate? `${f.dropoffDate} ${f.dropoffTime||'00:00'}` : '—';
   ev.groundTransport = {driverName:f.driverName||'—', driverPhone:f.driverPhone||'—', pickupTime, pickupLocation:f.pickupLocation||'—', dropoffTime, dropoffLocation:f.dropoffLocation||'—', notes:f.notes||''};
   ev.groundTransportBooked = true;
-  logEvent(ev,'success',`Driver booked & added to itinerary — ${artistById(ev.artistId).name} notified.`);
-  toast('Driver saved — artist notified.', 'success'); S.showTransportForm=false; saveEvents(); openEvent(id);
+  logEvent(ev,'email',`Driver booked & added to itinerary — Moshe and ${artistById(ev.artistId).name} notified.`);
+  toast('Driver saved — Moshe & artist notified.', 'success'); S.showTransportForm=false; saveEvents(); openEvent(id);
 }
 function doSaveDressCode(id){
   const ev = getEvent(id); const f = S.dressCodeForm;
@@ -3096,6 +3202,15 @@ function doMarkBalance(id){
   const ev = getEvent(id); ev.balanceReceived=true; ev.balanceReceivedDate=fmtISO(new Date()); ev.status='paid';
   logEvent(ev,'success','Bookkeeping marked balance received via Zelle — reminders stopped.');
   toast('Balance marked received. Reminders stopped.', 'success'); saveEvents(); openEvent(id);
+}
+function doToggleArtistPaidOut(id){
+  const ev = getEvent(id);
+  ev.artistPaidOut = !ev.artistPaidOut;
+  ev.artistPaidOutDate = ev.artistPaidOut ? fmtISO(new Date()) : null;
+  logEvent(ev, ev.artistPaidOut?'success':'system', ev.artistPaidOut? `Marked paid out to ${artistById(ev.artistId).name} (${money(zelleBalance(ev))}).` : 'Payout unmarked.');
+  saveEvents();
+  toast(ev.artistPaidOut? 'Marked paid out.' : 'Payout unmarked.', 'success');
+  render();
 }
 function doAddCharge(id){
   const f = S.addChargeForm;
@@ -3165,6 +3280,17 @@ function doShareEvent(id){
   }
   render();
 }
+function doCopyDailyDigest(){
+  const openLeads = S.events.filter(e=>['lead','negotiating','contract_sent'].includes(e.status));
+  const awaitingDeposit = S.events.filter(e=>e.status==='contract_sent');
+  const awaitingBalance = S.events.filter(e=>e.status==='booked' && !e.balanceReceived);
+  const text = buildDailyDigestWhatsAppText(openLeads, awaitingDeposit, awaitingBalance);
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(text).then(()=>toast('Copied — paste it to Ilan on WhatsApp.', 'success')).catch(()=>toast('Could not copy — try again.', 'system'));
+  } else {
+    toast('Clipboard not supported in this browser.', 'system');
+  }
+}
 function doDeleteEvent(id){
   const ev = getEvent(id);
   const what = ev.unpaid ? `this ${ev.type} for ${artistById(ev.artistId).name}` : `this ${ev.status==='lead'?'lead':'gig'} for ${ev.clientName} (${artistById(ev.artistId).name})`;
@@ -3212,7 +3338,7 @@ function doAddProject(){
       date: f.recordingDate, time:'10:00', endTime:null,
       venue:'', city:'', state:'',
       price:0, commission:0, balance:0, status:'scheduled', depositReceived:false, depositReceivedDate:null,
-      balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
+      balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays: defaultReminderCadence(f.recordingDate), lastReminderSent:null,
       flightNeeded:false, flightBooked:false, flight:null,
       groundTransportNeeded:false, groundTransportBooked:false, groundTransport:null,
       charges:[], dressCode:'', prepSheets:[], createdAt: fmtISO(new Date()),
@@ -3454,7 +3580,7 @@ function doSubmitLead(){
     date: f.date, time: f.time||'19:00', endTime: f.endTime||null,
     venue: f.venue||'', city: f.city||'', state: f.state||'',
     price, commission, balance: price-commission, status: isInternal? 'scheduled':'lead', depositReceived:false, depositReceivedDate:null,
-    balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays:5, lastReminderSent:null,
+    balanceReceived:false, balanceReceivedDate:null, reminderIntervalDays: defaultReminderCadence(f.date), lastReminderSent:null,
     flightNeeded: !!f.flightNeeded, flightBooked:false, flight:null,
     groundTransportNeeded: !!f.groundTransportNeeded, groundTransportBooked:false, groundTransport:null,
     charges: isInternal? [] : (f.charges||[]), dressCode: isInternal? '' : (f.dressCode||''), prepSheets:[], createdAt: fmtISO(new Date()),
@@ -3736,7 +3862,10 @@ function bindGlobal(){
       case 'preview-reminder': S.showReminderPreview=true; render(); break;
       case 'close-reminder-preview': S.showReminderPreview=false; render(); break;
       case 'overlay-close-reminderpreview': if(e.target===t){ S.showReminderPreview=false; render(); } break;
+      case 'close-booking-confirmation': S.showBookingConfirmation=false; render(); break;
+      case 'overlay-close-bookingconfirmation': if(e.target===t){ S.showBookingConfirmation=false; render(); } break;
       case 'mark-balance': doMarkBalance(id); break;
+      case 'toggle-artist-paidout': doToggleArtistPaidOut(id); break;
       case 'gcal': window.open(gcalUrl(getEvent(id)), '_blank'); break;
       case 'ics': downloadIcs(getEvent(id)); break;
       case 'dismiss-intl': { const ev=getEvent(id); ev.intlOpportunityDismissed=true; saveEvents(); toast('Dismissed.', 'system'); render(); break; }
@@ -3792,6 +3921,7 @@ function bindGlobal(){
       case 'overlay-close-welcome': if(e.target===t){ S.newArtistWelcome=null; render(); } break;
       case 'toggle-event-menu': S.showEventMenu = !S.showEventMenu; render(); break;
       case 'share-event': doShareEvent(id); break;
+      case 'copy-daily-digest': doCopyDailyDigest(); break;
       case 'delete-event': doDeleteEvent(id); break;
       case 'install-app': if(deferredInstallPrompt){ deferredInstallPrompt.prompt(); deferredInstallPrompt.userChoice.finally(()=>{ deferredInstallPrompt=null; }); } break;
       case 'dismiss-install': localStorage.setItem('aspInstallDismissedAt', String(Date.now())); S.showInstallBanner=false; render(); break;
