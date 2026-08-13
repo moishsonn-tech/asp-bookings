@@ -158,6 +158,26 @@ For portals with no API, scheduled scrapes, and anything a human would click thr
 - Google Sheets: read via export URLs or API; EDITING via browser automation is fragile
   (clipboard/formula gotchas) — prefer the Sheets API or Apps Script for writes.
 
+## 14. Flight tracking
+For a "enter a flight/confirmation number, get live status updates" feature (ASP Bookings):
+- **AeroDataBox** (via RapidAPI): flight-number or route lookup, free tier available, simplest to
+  wire for a small volume of flights. Good default first pick.
+- **FlightAware AeroAPI**: the industry-standard source, more accurate/complete data (gate,
+  delays, cancellations) but paid-only, no meaningful free tier — step up when accuracy at scale
+  matters more than cost.
+- **AviationStack**: another keyed REST option, comparable tier to AeroDataBox — useful as the
+  fallback in a two-provider chain per the meta-rules below (flight APIs do go down/rate-limit).
+- Real implementation shape: server-side poll (scheduled job, e.g. every 15-30 min for flights
+  departing/landing within the next few hours) → diff against last-known status → if changed, send
+  the ASP-branded update email through the existing send mechanism (§1). Never call these APIs
+  client-side — keys go through the proxy like everything else.
+- **In-app today (ASP Bookings mockup):** fully simulated — entering a flight/confirmation number
+  enables a "Check for Update" button that cycles through a fixed realistic status sequence (On
+  time → Gate assigned → Boarding → Departed → In flight → Landed) and logs a mocked branded-email
+  activity entry each time, matching the app's established "mocked send, real data" convention. No
+  real flight is ever queried. Swap the button's handler for the real poll-and-diff job above once
+  a provider key exists.
+
 ---
 
 ## The meta-rules (apply to every integration)
